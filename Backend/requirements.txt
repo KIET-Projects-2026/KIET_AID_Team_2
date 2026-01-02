@@ -1,8 +1,27 @@
-fastapi
-uvicorn
-torch
-transformers
-peft
-accelerate
-sentencepiece
-pydantic
+# ===================== BACKEND REQUIREMENTS =====================
+
+# -------- Core FastAPI --------
+fastapi==0.104.1
+uvicorn==0.24.0
+python-multipart==0.0.6
+
+# -------- Machine Learning / NLP --------
+torch==2.1.0
+transformers==4.35.0
+peft==0.7.1
+accelerate==0.24.1
+sentencepiece==0.1.99
+
+# -------- Audio / Voice Processing --------
+SpeechRecognition==3.10.0
+pydub==0.25.1
+librosa==0.10.0
+
+# -------- Scientific & Utilities --------
+numpy==1.24.3
+scipy==1.11.4
+python-dotenv==1.0.0
+
+# -------- Production Server --------
+gunicorn==21.2.0
+ 
