@@ -1,0 +1,383 @@
+[
+  {
+    "timestamp": "2025-12-29T14:42:46.395400",
+    "user_input": "long term law",
+    "bot_response": "long term law",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2025-12-29T14:43:02.960260",
+    "user_input": "I have a favour",
+    "bot_response": "I have a favour.",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2025-12-29T14:43:14.090050",
+    "user_input": "I love you",
+    "bot_response": "I love you.",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2025-12-29T14:45:05.792372",
+    "user_input": "hi",
+    "bot_response": "i'm looking for a place to stay in chennai. please let me know if you have any questions.",
+    "input_type": "text",
+    "metadata": {}
+  },
+  {
+    "timestamp": "2025-12-29T14:45:15.961037",
+    "user_input": "fever",
+    "bot_response": "fever",
+    "input_type": "text",
+    "metadata": {}
+  },
+  {
+    "timestamp": "2025-12-29T14:52:45.943337",
+    "user_input": "I have a favour how can I treat this",
+    "bot_response": "I have a favour how can I treat this?",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2025-12-29T14:53:22.764371",
+    "user_input": "I have a favour how can I treat this",
+    "bot_response": "I have a favour how can I treat this?",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2025-12-29T14:55:01.944499",
+    "user_input": "I have a favour how can I treat this",
+    "bot_response": "I have a favour how can I treat this?",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T10:20:35.594815",
+    "user_input": "I love u",
+    "bot_response": "I love you",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T10:20:49.550408",
+    "user_input": "shut up",
+    "bot_response": "shut up.",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T10:21:27.454038",
+    "user_input": "waste waste",
+    "bot_response": "waste waste",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T10:21:40.349579",
+    "user_input": "namaskaram",
+    "bot_response": "namaskaram",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T10:22:14.682360",
+    "user_input": "chachu",
+    "bot_response": "chachu",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T10:22:26.497643",
+    "user_input": "Nee Peru enti",
+    "bot_response": "Ne Peru enti",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T10:22:39.119858",
+    "user_input": "my name is my",
+    "bot_response": "mrs. taylor",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T10:23:06.293143",
+    "user_input": "Poove",
+    "bot_response": "Poove a hole in the wall.",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T14:44:21.811109",
+    "user_input": "how to treat sugar at home",
+    "bot_response": "To treat sugar at home, you can treat it by soaking it in a solution of baking soda and water.",
+    "input_type": "text",
+    "metadata": {}
+  },
+  {
+    "timestamp": "2026-01-02T14:44:41.495705",
+    "user_input": "how to treat fever at home",
+    "bot_response": "if you have a fever, take ibuprofen or acetaminophen.",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T14:45:02.360763",
+    "user_input": "how to treat",
+    "bot_response": "a tetanus infection",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T14:45:16.532096",
+    "user_input": "how to treat headache at home",
+    "bot_response": "if you have a headache and don't know how to treat it, consult your doctor.",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T14:45:48.409624",
+    "user_input": "how to treat cigarette at home",
+    "bot_response": "To treat a cigarette at home, you can use rubbing alcohol or acetone to treat it.",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T14:46:04.372092",
+    "user_input": "how to treat sugar at home",
+    "bot_response": "To treat sugar at home, you can treat it by soaking it in a solution of water and baking soda.",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T14:46:25.909293",
+    "user_input": "how to treat diabetes and",
+    "bot_response": "diabetes is a disease that affects the body's ability to control blood sugar levels.",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T14:46:52.824427",
+    "user_input": "what you assist it is only about the Healthcare or anything",
+    "bot_response": "what you assist it is only about the Healthcare or anything",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T14:47:09.258405",
+    "user_input": "can you book the tickets for the show Avatar",
+    "bot_response": "yes",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T14:47:20.333558",
+    "user_input": "book now",
+    "bot_response": "book now",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T14:47:29.491559",
+    "user_input": "Satish lover how to propose",
+    "bot_response": "Satish lover how to propose",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T14:47:50.381462",
+    "user_input": "actually that lover can suffering from fever",
+    "bot_response": "actually that lover can suffering from fever",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T14:48:06.615614",
+    "user_input": "she is not good person",
+    "bot_response": "she is not good person",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T15:08:29.471623",
+    "user_input": "how to treat sugar at home",
+    "bot_response": "To treat sugar at home, you can treat it by soaking it in a solution of baking soda and water.",
+    "input_type": "text",
+    "metadata": {
+      "cached": true
+    }
+  },
+  {
+    "timestamp": "2026-01-02T15:08:43.897434",
+    "user_input": "how to treat fever at home",
+    "bot_response": "To treat fever at home, you can take a cold medicine such as acetaminophen or ibuprofen.",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T15:09:49.233580",
+    "user_input": "how to treat fever at home",
+    "bot_response": "Take ibuprofen, acetaminophen and diphenhydramine to treat fever at home.",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T15:10:06.975819",
+    "user_input": "can I use Paracetamol to treat fever",
+    "bot_response": "yes",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T15:10:20.716049",
+    "user_input": "how to take doses a morning afternoon and evening",
+    "bot_response": "Take the doses as directed by your doctor. Do not take more than one dose at a time.",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T15:12:45.901962",
+    "user_input": "can I use Dolo or Paracetamol to treat",
+    "bot_response": "yes",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T15:12:53.949353",
+    "user_input": "which is",
+    "bot_response": "the symbiotic relationship between a nematode and an eukaryote",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T15:13:12.231270",
+    "user_input": "is paracetamol better or download to treat fever at home",
+    "bot_response": "paracetamol better or download to treat fever at home",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T15:13:29.858872",
+    "user_input": "is citizen good or Dolo to treat fever",
+    "bot_response": "citizen good",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T15:13:51.038098",
+    "user_input": "is Dholak better or Paracetamol to treat fever",
+    "bot_response": "Dholak better or Paracetamol to treat fever",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T15:14:26.356761",
+    "user_input": "will you suggest any home remedies to treat generic medicine",
+    "bot_response": "yes",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T15:14:38.875868",
+    "user_input": "please suggest precautions for",
+    "bot_response": "adolescent children",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T15:14:50.588490",
+    "user_input": "please suggest precautions for fever",
+    "bot_response": "if you have a fever, do not take antibiotics.",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  },
+  {
+    "timestamp": "2026-01-02T15:15:06.457648",
+    "user_input": "then how to take",
+    "bot_response": "a few minutes, then how to take the rest of the day.",
+    "input_type": "voice",
+    "metadata": {
+      "audio_file": "voice_input.webm"
+    }
+  }
+]

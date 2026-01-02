@@ -1,0 +1,62 @@
+# ===================== Python =====================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+
+# ===================== Virtual Environment =====================
+venv/
+.venv/
+env/
+ENV/
+
+# ===================== OS / Editor =====================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ===================== FastAPI / Uvicorn =====================
+*.pid
+*.sock
+
+# ===================== Environment Variables =====================
+.env
+.env.*
+*.env
+
+# ===================== ML / Transformers =====================
+cache/
+.cache/
+hf_cache/
+transformers_cache/
+datasets/
+wandb/
+
+# ===================== PyTorch =====================
+*.pt
+*.pth
+
+# ===================== Model Files (IMPORTANT) =====================
+# Ignore large model files – keep adapters only if needed
+model/*
+!model/adapter_config.json
+!model/adapter_model.safetensors
+
+# ===================== Logs =====================
+logs/
+*.log
+
+# ===================== Build / Packaging =====================
+build/
+dist/
+*.egg-info/
+
+# ===================== Jupyter / Colab =====================
+.ipynb_checkpoints/
+
+# ===================== Temporary Files =====================
+tmp/
+temp/

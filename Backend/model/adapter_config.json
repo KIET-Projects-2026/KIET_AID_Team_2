@@ -1,0 +1,11 @@
+{
+  "peft_type": "LORA",
+  "base_model_name_or_path": "google/flan-t5-base",
+  "task_type": "SEQ_2_SEQ_LM",
+  "inference_mode": true,
+  "r": 16,
+  "lora_alpha": 16,
+  "lora_dropout": 0.05,
+  "bias": "none",
+  "target_modules": ["q", "v"]
+}
