@@ -6,9 +6,9 @@
 // npm install axios react-icons
 
 // ===================== 2. HEALTHCARECHATBOT.JSX (COMPLETE WORKING VERSION) =====================
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
-import { FiMic, FiSend, FiRefreshCw, FiTrash2, FiVolume2, FiStopCircle, FiLogOut, FiUser, FiMenu, FiChevronLeft } from 'react-icons/fi';
+import { FiMic, FiSend, FiRefreshCw, FiTrash2, FiVolume2, FiStopCircle, FiLogOut, FiUser, FiMenu, FiChevronLeft, FiX, FiMicOff } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import './HealthcareChatbot.css';
 
@@ -34,7 +34,19 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(true);
 
+  // ========== VOICE ASSISTANT MODE (Google Assistant-like) ==========
+  const [voiceAssistantActive, setVoiceAssistantActive] = useState(false);
+  const [assistantState, setAssistantState] = useState('idle'); // idle | listening | processing | speaking
+  const [assistantTranscript, setAssistantTranscript] = useState('');
+  const [assistantResponse, setAssistantResponse] = useState('');
+  const [autoSpeak, setAutoSpeak] = useState(true); // auto-read bot replies
+  const [continuousMode, setContinuousMode] = useState(true); // auto-listen after bot speaks
+  const [audioLevel, setAudioLevel] = useState(0); // for visualizer animation
+  const [selectedVoice, setSelectedVoice] = useState(null);
 
+  // ========== WAKE WORD DETECTION ("Hey Voicebot") ==========
+  const [wakeWordEnabled, setWakeWordEnabled] = useState(true); // background listening for wake word
+  const [wakeWordListening, setWakeWordListening] = useState(false); // UI indicator
 
   // ========== REFS ==========
   const messagesEndRef = useRef(null);
@@ -42,6 +54,42 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const streamRef = useRef(null);
+  const analyserRef = useRef(null);
+  const animationFrameRef = useRef(null);
+  const speechRecognitionRef = useRef(null);
+  const voiceAssistantActiveRef = useRef(false);
+  const continuousModeRef = useRef(true);
+  const wakeWordRecognitionRef = useRef(null);
+  const wakeWordRunningRef = useRef(false); // guard against duplicate starts
+  const wakeWordEnabledRef = useRef(true);
+
+  // Keep refs in sync with state for use inside callbacks
+  useEffect(() => { voiceAssistantActiveRef.current = voiceAssistantActive; }, [voiceAssistantActive]);
+  useEffect(() => { continuousModeRef.current = continuousMode; }, [continuousMode]);
+  useEffect(() => { wakeWordEnabledRef.current = wakeWordEnabled; }, [wakeWordEnabled]);
+
+  // ========== SELECT BEST TTS VOICE (prefer Google / natural voices) ==========
+  useEffect(() => {
+    const pickBestVoice = () => {
+      const voices = window.speechSynthesis?.getVoices() || [];
+      if (!voices.length) return;
+      // Priority: Google US English > Google UK English > any English female > first English > default
+      const preferred = [
+        v => /google us english/i.test(v.name),
+        v => /google uk english/i.test(v.name),
+        v => v.lang.startsWith('en') && /female|samantha|zira|karen/i.test(v.name),
+        v => v.lang.startsWith('en'),
+      ];
+      for (const test of preferred) {
+        const match = voices.find(test);
+        if (match) { setSelectedVoice(match); return; }
+      }
+      setSelectedVoice(voices[0]);
+    };
+    pickBestVoice();
+    window.speechSynthesis?.addEventListener('voiceschanged', pickBestVoice);
+    return () => window.speechSynthesis?.removeEventListener('voiceschanged', pickBestVoice);
+  }, []);
 
   // ========== CHECK BROWSER SUPPORT ==========
   useEffect(() => {
@@ -122,29 +170,480 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
     }
   }, [activeConversationId]);
 
-  // ========== SPEECH SYNTHESIS (Text-to-Speech) ==========
-  const speakResponse = (text) => {
+  // ========== SPEECH SYNTHESIS (Text-to-Speech) - Enhanced for Assistant Mode ==========
+  const speakResponse = useCallback((text, options = {}) => {
     if (!window.speechSynthesis) {
       toast.error('Speech synthesis not supported in this browser');
-      return;
+      return Promise.resolve();
     }
 
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1;
-    utterance.pitch = 1;
-    utterance.volume = 1;
+    return new Promise((resolve) => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = options.rate || 1.0;
+      utterance.pitch = options.pitch || 1.0;
+      utterance.volume = options.volume || 1;
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => {
-      toast.error('Error during speech synthesis');
-      setIsSpeaking(false);
+      // Use the selected best voice
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+        if (voiceAssistantActiveRef.current) {
+          setAssistantState('speaking');
+        }
+      };
+
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        if (voiceAssistantActiveRef.current) {
+          setAssistantState('idle');
+          // In continuous mode, auto-start listening again after bot finishes
+          if (continuousModeRef.current) {
+            setTimeout(() => {
+              if (voiceAssistantActiveRef.current) {
+                startAssistantListening();
+              }
+            }, 600);
+          }
+        }
+        resolve();
+      };
+
+      utterance.onerror = (e) => {
+        console.error('TTS error:', e);
+        setIsSpeaking(false);
+        if (voiceAssistantActiveRef.current) {
+          setAssistantState('idle');
+        }
+        resolve();
+      };
+
+      window.speechSynthesis.speak(utterance);
+    });
+  }, [selectedVoice]);
+
+  // ========== VOICE ASSISTANT - Speech Recognition (Live Transcription) ==========
+  const startAssistantListening = useCallback(() => {
+    if (!voiceAssistantActiveRef.current) return;
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error('Speech recognition not supported. Use Chrome or Edge.');
+      return;
+    }
+
+    // Stop any existing recognition
+    if (speechRecognitionRef.current) {
+      try { speechRecognitionRef.current.abort(); } catch (_) {}
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setAssistantState('listening');
+      setAssistantTranscript('');
+      startAudioVisualizer();
     };
 
-    window.speechSynthesis.speak(utterance);
+    recognition.onresult = (event) => {
+      let interim = '';
+      let final = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          final += transcript;
+        } else {
+          interim += transcript;
+        }
+      }
+      setAssistantTranscript(final || interim);
+    };
+
+    recognition.onend = () => {
+      stopAudioVisualizer();
+      // Process the final transcript
+      setAssistantTranscript((currentTranscript) => {
+        if (currentTranscript && currentTranscript.trim() && voiceAssistantActiveRef.current) {
+          processAssistantQuery(currentTranscript.trim());
+        } else if (voiceAssistantActiveRef.current) {
+          // No speech detected, go back to idle
+          setAssistantState('idle');
+        }
+        return currentTranscript;
+      });
+    };
+
+    recognition.onerror = (event) => {
+      stopAudioVisualizer();
+      console.warn('Recognition error:', event.error);
+      if (event.error === 'no-speech') {
+        // No speech detected — go idle, allow user to tap again
+        setAssistantState('idle');
+      } else if (event.error === 'not-allowed') {
+        toast.error('Microphone permission denied.');
+        setVoiceAssistantActive(false);
+        setAssistantState('idle');
+      } else {
+        setAssistantState('idle');
+      }
+    };
+
+    speechRecognitionRef.current = recognition;
+    recognition.start();
+  }, []);
+
+  const stopAssistantListening = useCallback(() => {
+    if (speechRecognitionRef.current) {
+      try { speechRecognitionRef.current.stop(); } catch (_) {}
+    }
+    stopAudioVisualizer();
+  }, []);
+
+  // ========== VOICE ASSISTANT - Process the spoken query ==========
+  const processAssistantQuery = async (query) => {
+    setAssistantState('processing');
+    setAssistantResponse('');
+
+    // Add user message to chat
+    const userMessage = {
+      id: generateId(),
+      type: 'user',
+      text: query,
+      timestamp: new Date(),
+      isVoice: true,
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
+    try {
+      // Ensure we have a conversation
+      let convId = activeConversationId;
+      if (!convId) {
+        const createResp = await axios.post(`${API_BASE_URL}/api/chat/conversations`, {});
+        if (createResp.data?.status === 'success' && createResp.data.conversation_id) {
+          convId = createResp.data.conversation_id;
+          setActiveConversationId(convId);
+          localStorage.setItem('activeConversationId', convId);
+          fetchConversations();
+        }
+      }
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/chat/text`,
+        { text: query, conversation_id: convId },
+        { timeout: 30000 }
+      );
+
+      if (response.data.status === 'success') {
+        const botText = response.data.response;
+        setAssistantResponse(botText);
+
+        const botMessage = {
+          id: generateId(),
+          type: 'bot',
+          text: botText,
+          timestamp: new Date(),
+          inputType: 'voice',
+        };
+        setMessages((prev) => [...prev, botMessage]);
+
+        if (response.data.conversation_id) {
+          setActiveConversationId(response.data.conversation_id);
+          localStorage.setItem('activeConversationId', response.data.conversation_id);
+          fetchConversations();
+        }
+
+        // Speak the response (this will auto-trigger next listen in continuous mode)
+        await speakResponse(botText);
+      } else {
+        const errMsg = 'Sorry, I couldn\'t process that. Please try again.';
+        setAssistantResponse(errMsg);
+        setAssistantState('idle');
+        speakResponse(errMsg);
+      }
+    } catch (err) {
+      console.error('Assistant query error:', err);
+      const errMsg = 'Sorry, something went wrong. Please try again.';
+      setAssistantResponse(errMsg);
+      setAssistantState('idle');
+      speakResponse(errMsg);
+    }
   };
+
+  // ========== AUDIO VISUALIZER (for voice assistant animation) ==========
+  const startAudioVisualizer = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      analyserRef.current = { analyser, audioContext, stream };
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+      const updateLevel = () => {
+        analyser.getByteFrequencyData(dataArray);
+        const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+        setAudioLevel(Math.min(avg / 128, 1)); // normalize 0–1
+        animationFrameRef.current = requestAnimationFrame(updateLevel);
+      };
+      updateLevel();
+    } catch (err) {
+      console.warn('Audio visualizer error:', err);
+    }
+  };
+
+  const stopAudioVisualizer = () => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    if (analyserRef.current) {
+      analyserRef.current.stream?.getTracks().forEach(t => t.stop());
+      analyserRef.current.audioContext?.close().catch(() => {});
+      analyserRef.current = null;
+    }
+    setAudioLevel(0);
+  };
+
+  // ========== VOICE ASSISTANT CONTROLS ==========
+  const openVoiceAssistant = () => {
+    // Stop wake word listener — assistant takes over the mic
+    stopWakeWordListener();
+    setVoiceAssistantActive(true);
+    setAssistantState('idle');
+    setAssistantTranscript('');
+    setAssistantResponse('');
+    // Small delay then start listening
+    setTimeout(() => {
+      startAssistantListening();
+    }, 400);
+  };
+
+  const closeVoiceAssistant = () => {
+    setVoiceAssistantActive(false);
+    setAssistantState('idle');
+    setAssistantTranscript('');
+    setAssistantResponse('');
+    stopAssistantListening();
+    stopAudioVisualizer();
+    window.speechSynthesis?.cancel();
+    setIsSpeaking(false);
+    // Restart wake word listener if enabled
+    if (wakeWordEnabledRef.current) {
+      setTimeout(() => startWakeWordListener(), 500);
+    }
+  };
+
+  const handleAssistantTap = () => {
+    if (assistantState === 'listening') {
+      // Force stop listening and process what we have
+      stopAssistantListening();
+    } else if (assistantState === 'speaking') {
+      // Stop speaking and go idle
+      window.speechSynthesis?.cancel();
+      setIsSpeaking(false);
+      setAssistantState('idle');
+    } else if (assistantState === 'idle') {
+      // Start listening
+      startAssistantListening();
+    }
+    // If processing, do nothing — wait for response
+  };
+
+  // ========== WAKE WORD LISTENER (background "voicebot" detection) ==========
+  const startWakeWordListener = useCallback(() => {
+    // Guard: don't start if already running, disabled, or assistant is open
+    if (wakeWordRunningRef.current) {
+      console.log('🛑 Wake word: Already running, skipping duplicate start');
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.log('Wake word: SpeechRecognition not supported');
+      return;
+    }
+    if (voiceAssistantActiveRef.current) {
+      console.log('Wake word: Assistant is active, skipping');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;  // Keep listening continuously
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+
+    // Wake word to match
+    const WAKE_WORD = 'voice';
+    let wakeWordTriggered = false;
+    let lastSpeechTime = Date.now();
+    const SILENCE_TIMEOUT = 5000; // Restart after 5 seconds of silence
+
+    const isWakeWordDetected = (transcript) => {
+      const clean = transcript.toLowerCase().trim().replace(/[^\w\s]/g, '');
+      console.log('🔎 Wake word heard:', clean);
+      return clean.includes(WAKE_WORD);
+    };
+
+    // Track silence and auto-restart
+    let silenceCheckInterval = setInterval(() => {
+      const timeSinceSpeech = Date.now() - lastSpeechTime;
+      if (timeSinceSpeech > SILENCE_TIMEOUT && wakeWordRunningRef.current && !wakeWordTriggered) {
+        console.log('🔕 Wake word: Silence detected, restarting listener...');
+        clearInterval(silenceCheckInterval);
+        try { recognition.abort(); } catch (_) {}
+      }
+    }, 1000);
+
+    recognition.onstart = () => {
+      wakeWordRunningRef.current = true;
+      setWakeWordListening(true);
+      lastSpeechTime = Date.now();
+      console.log('✅ Wake word listener STARTED — say "Voice"');
+    };
+
+    recognition.onaudiostart = () => {
+      console.log('🎧 Wake word: Microphone audio stream active');
+    };
+
+    recognition.onresult = (event) => {
+      // Update speech time on any detection
+      lastSpeechTime = Date.now();
+      
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        const isFinal = event.results[i].isFinal;
+        if (transcript.trim()) {
+          console.log(`🎤 Wake word: "${transcript}" (final: ${isFinal})`);
+        }
+
+        if (isWakeWordDetected(transcript)) {
+          wakeWordTriggered = true;
+          wakeWordRunningRef.current = false;
+          clearInterval(silenceCheckInterval);
+          try { recognition.abort(); } catch (_) {}
+          setWakeWordListening(false);
+          console.log('🚀 Wake word DETECTED! Opening assistant...');
+          toast.info('🎙️ "Voice" detected! Activating...', { autoClose: 2000 });
+          setTimeout(() => openVoiceAssistant(), 300);
+          return;
+        }
+      }
+    };
+
+    recognition.onend = () => {
+      clearInterval(silenceCheckInterval);
+      wakeWordRunningRef.current = false;
+      setWakeWordListening(false);
+      if (wakeWordTriggered) return; // don't restart if we triggered the assistant
+      console.log('⏹️ Wake word session ended');
+      // Auto-restart after a pause
+      if (wakeWordEnabledRef.current && !voiceAssistantActiveRef.current) {
+        console.log('🔄 Wake word: Will restart in 1s...');
+        setTimeout(() => {
+          if (wakeWordEnabledRef.current && !voiceAssistantActiveRef.current && !wakeWordRunningRef.current) {
+            startWakeWordListener();
+          }
+        }, 800);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      clearInterval(silenceCheckInterval);
+      wakeWordRunningRef.current = false;
+      setWakeWordListening(false);
+      console.warn('❌ Wake word error:', event.error);
+
+      if (event.error === 'not-allowed') {
+        setWakeWordEnabled(false);
+        toast.error('🔒 Microphone permission denied. Wake word disabled.');
+        return;
+      }
+      if (event.error === 'aborted') return; // intentional, onend handles restart
+
+      // Log detailed error info for debugging
+      if (event.error === 'no-speech') {
+        console.warn('Wake word: No speech detected (will retry)');
+      } else if (event.error === 'network') {
+        console.error('Wake word: Network error');
+      }
+
+      // For no-speech, network, etc. — retry
+      if (wakeWordEnabledRef.current && !voiceAssistantActiveRef.current) {
+        const delay = event.error === 'no-speech' ? 500 : 1500;
+        setTimeout(() => {
+          if (wakeWordEnabledRef.current && !voiceAssistantActiveRef.current && !wakeWordRunningRef.current) {
+            startWakeWordListener();
+          }
+        }, delay);
+      }
+    };
+
+    wakeWordRecognitionRef.current = recognition;
+    try {
+      recognition.start();
+      console.log('📍 Wake word: start() called');
+    } catch (err) {
+      console.error('❌ Wake word start() exception:', err);
+      wakeWordRunningRef.current = false;
+      setWakeWordListening(false);
+      setTimeout(() => {
+        if (wakeWordEnabledRef.current && !voiceAssistantActiveRef.current && !wakeWordRunningRef.current) {
+          startWakeWordListener();
+        }
+      }, 1500);
+    }
+  }, []);
+
+  const stopWakeWordListener = useCallback(() => {
+    wakeWordRunningRef.current = false;
+    if (wakeWordRecognitionRef.current) {
+      try { wakeWordRecognitionRef.current.abort(); } catch (_) {}
+      wakeWordRecognitionRef.current = null;
+    }
+    setWakeWordListening(false);
+  }, []);
+
+  // Auto-start wake word listener on mount / when enabled changes
+  useEffect(() => {
+    // Use a small delay to avoid double-start from React strict mode or fast re-renders
+    let timer;
+    if (wakeWordEnabled && !voiceAssistantActive) {
+      timer = setTimeout(() => {
+        if (!wakeWordRunningRef.current) {
+          startWakeWordListener();
+        }
+      }, 600);
+    } else {
+      stopWakeWordListener();
+    }
+    return () => {
+      clearTimeout(timer);
+      stopWakeWordListener();
+    };
+  }, [wakeWordEnabled, voiceAssistantActive, startWakeWordListener, stopWakeWordListener]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopAudioVisualizer();
+      stopWakeWordListener();
+      if (speechRecognitionRef.current) {
+        try { speechRecognitionRef.current.abort(); } catch (_) {}
+      }
+      window.speechSynthesis?.cancel();
+    };
+  }, []);
 
   // ========== API CALLS ==========
 
@@ -273,6 +772,11 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
 
         setMessages((prev) => [...prev, botMessage]);
         toast.success('✅ Response received!');
+
+        // Auto-speak the response if enabled
+        if (autoSpeak) {
+          speakResponse(response.data.response);
+        }
 
         // Save conversation id returned by backend for subsequent messages
         if (response.data.conversation_id) {
@@ -749,6 +1253,145 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
           </p>
         )}
       </div>
+
+      {/* ========== FLOATING VOICE ASSISTANT BUTTON ========== */}
+      {!voiceAssistantActive && (
+        <div className="voice-assistant-fab-wrapper">
+          {/* Wake word status indicator */}
+          {wakeWordEnabled && (
+            <div className={`wake-word-indicator ${wakeWordListening ? 'active' : ''}`}
+                 title={wakeWordListening ? 'Say "Voice" to activate' : 'Wake word starting...'}
+            >
+              <div className="wake-word-dot" />
+              <span className="wake-word-label">Say &quot;Voice&quot;</span>
+            </div>
+          )}
+          <button
+            className="voice-assistant-fab"
+            onClick={openVoiceAssistant}
+            title="Open Voice Assistant"
+            aria-label="Open voice assistant"
+          >
+            <FiMic />
+            <span className="fab-pulse" />
+          </button>
+        </div>
+      )}
+
+      {/* ========== VOICE ASSISTANT OVERLAY (Google Assistant-like) ========== */}
+      {voiceAssistantActive && (
+        <div className="voice-assistant-overlay">
+          <div className="voice-assistant-backdrop" onClick={closeVoiceAssistant} />
+          <div className="voice-assistant-panel">
+            {/* Close button */}
+            <button className="va-close-btn" onClick={closeVoiceAssistant} aria-label="Close voice assistant">
+              <FiX />
+            </button>
+
+            {/* Settings row */}
+            <div className="va-settings">
+              <label className="va-toggle-label">
+                <input type="checkbox" checked={continuousMode} onChange={(e) => setContinuousMode(e.target.checked)} />
+                <span>Continuous</span>
+              </label>
+              <label className="va-toggle-label">
+                <input type="checkbox" checked={autoSpeak} onChange={(e) => setAutoSpeak(e.target.checked)} />
+                <span>Auto-speak</span>
+              </label>
+              <label className="va-toggle-label">
+                <input type="checkbox" checked={wakeWordEnabled} onChange={(e) => setWakeWordEnabled(e.target.checked)} />
+                <span>Wake word</span>
+              </label>
+            </div>
+
+            {/* Response display */}
+            {assistantResponse && (
+              <div className="va-response-area">
+                <p className="va-response-text">{assistantResponse}</p>
+              </div>
+            )}
+
+            {/* Transcript display */}
+            {assistantTranscript && (
+              <div className="va-transcript-area">
+                <p className="va-transcript-text">
+                  {assistantTranscript}
+                </p>
+              </div>
+            )}
+
+            {/* State label */}
+            <div className="va-status-label">
+              {assistantState === 'idle' && 'Tap to speak'}
+              {assistantState === 'listening' && 'Listening...'}
+              {assistantState === 'processing' && 'Thinking...'}
+              {assistantState === 'speaking' && 'Speaking...'}
+            </div>
+
+            {/* Animated Orb */}
+            <div
+              className={`va-orb-container va-state-${assistantState}`}
+              onClick={handleAssistantTap}
+              role="button"
+              tabIndex={0}
+              aria-label={
+                assistantState === 'idle' ? 'Tap to start speaking' :
+                assistantState === 'listening' ? 'Tap to stop listening' :
+                assistantState === 'speaking' ? 'Tap to stop speaking' :
+                'Processing your request'
+              }
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleAssistantTap(); }}
+            >
+              {/* Ripple rings */}
+              <div className="va-ripple va-ripple-1" style={{ transform: `scale(${1 + audioLevel * 0.5})` }} />
+              <div className="va-ripple va-ripple-2" style={{ transform: `scale(${1 + audioLevel * 0.35})` }} />
+              <div className="va-ripple va-ripple-3" style={{ transform: `scale(${1 + audioLevel * 0.2})` }} />
+
+              {/* Central orb */}
+              <div
+                className="va-orb"
+                style={{ transform: `scale(${1 + audioLevel * 0.15})` }}
+              >
+                {assistantState === 'listening' && <FiMic className="va-orb-icon" />}
+                {assistantState === 'processing' && (
+                  <div className="va-spinner">
+                    <div /><div /><div />
+                  </div>
+                )}
+                {assistantState === 'speaking' && <FiVolume2 className="va-orb-icon va-speaking-icon" />}
+                {assistantState === 'idle' && <FiMic className="va-orb-icon" />}
+              </div>
+            </div>
+
+            {/* Waveform bars (animated when listening) */}
+            {assistantState === 'listening' && (
+              <div className="va-waveform">
+                {[...Array(5)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="va-waveform-bar"
+                    style={{
+                      height: `${12 + audioLevel * 30 + Math.sin(Date.now() / 200 + i * 1.2) * 8}px`,
+                      animationDelay: `${i * 0.1}s`,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Quick hint */}
+            <p className="va-hint">
+              {assistantState === 'idle' && '"What are the symptoms of diabetes?"'}
+              {assistantState === 'listening' && 'I\'m listening...'}
+              {assistantState === 'processing' && 'Getting your answer...'}
+              {assistantState === 'speaking' && 'Tap the orb to stop'}
+            </p>
+            {wakeWordEnabled && (
+              <p className="va-hint va-wake-hint">💡 Say <strong>&quot;Voice&quot;</strong> anytime to activate hands-free</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
