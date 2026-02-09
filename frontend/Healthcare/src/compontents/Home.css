@@ -63,6 +63,17 @@
   font-weight: 700;
 }
 
+/* Ensure hero buttons stay visible on teal background */
+.home-hero .btn.outline {
+  border-color: rgba(255, 255, 255, 0.7);
+  color: #ffffff;
+}
+
+.home-hero .btn.outline:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: #ffffff;
+}
+
 .btn.primary:hover {
   background: #0d9488;
 }
