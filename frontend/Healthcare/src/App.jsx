@@ -4,11 +4,14 @@ import './App.css'
 import HealthcareChatbot from './compontents/HealthcareChatbot'
 import Login from './compontents/Login'
 import Signup from './compontents/Signup'
+import Home from './compontents/Home'
+import Footer from './compontents/Footer'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
   const [showLogin, setShowLogin] = useState(true)
+  const [showHome, setShowHome] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -52,10 +55,16 @@ function App() {
 
   const switchToSignup = () => {
     setShowLogin(false)
+    setShowHome(false)
   }
 
   const switchToLogin = () => {
     setShowLogin(true)
+    setShowHome(false)
+  }
+
+  const goHome = () => {
+    setShowHome(true)
   }
 
   if (isLoading) {
@@ -81,22 +90,32 @@ function App() {
   return (
     <>
       {!isAuthenticated ? (
-        showLogin ? (
-          <Login 
-            onLoginSuccess={handleLoginSuccess} 
-            onSwitchToSignup={switchToSignup}
-          />
+        showHome ? (
+          <>
+            <Home onSwitchToLogin={switchToLogin} onSwitchToSignup={switchToSignup} />
+            <Footer />
+          </>
         ) : (
-          <Signup 
-            onSignupSuccess={handleSignupSuccess} 
-            onSwitchToLogin={switchToLogin}
-          />
+          showLogin ? (
+            <Login 
+              onLoginSuccess={handleLoginSuccess} 
+              onSwitchToSignup={switchToSignup}
+            />
+          ) : (
+            <Signup 
+              onSignupSuccess={handleSignupSuccess} 
+              onSwitchToLogin={switchToLogin}
+            />
+          )
         )
       ) : (
-        <HealthcareChatbot 
-          currentUser={currentUser}
-          onLogout={handleLogout}
-        />
+        <>
+          <HealthcareChatbot 
+            currentUser={currentUser}
+            onLogout={handleLogout}
+          />
+          <Footer />
+        </>
       )}
     </>
   )

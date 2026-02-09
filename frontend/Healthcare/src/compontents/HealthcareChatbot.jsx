@@ -8,7 +8,7 @@
 // ===================== 2. HEALTHCARECHATBOT.JSX (COMPLETE WORKING VERSION) =====================
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { FiMic, FiSend, FiRefreshCw, FiTrash2, FiVolume2, FiStopCircle, FiLogOut, FiUser } from 'react-icons/fi';
+import { FiMic, FiSend, FiRefreshCw, FiTrash2, FiVolume2, FiStopCircle, FiLogOut, FiUser, FiMenu, FiChevronLeft } from 'react-icons/fi';
 import './HealthcareChatbot.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -39,6 +39,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
 
   // ========== REFS ==========
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const streamRef = useRef(null);
@@ -90,7 +91,21 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
 
   // ========== AUTO SCROLL TO LATEST MESSAGE ==========
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Only auto-scroll to bottom when the messages container is overflowing.
+    // This avoids pinning a few messages to the bottom and leaving a large empty gap above.
+    const container = messagesContainerRef.current;
+    if (!container) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+
+    const isOverflowing = container.scrollHeight > container.clientHeight;
+    if (isOverflowing) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      // keep content at the top when there's no overflow
+      container.scrollTop = 0;
+    }
   }, [messages]);
 
   // ========== UTILITY FUNCTIONS ==========
@@ -569,21 +584,42 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   // ========== RENDER ==========
   return (
     <div className="chatbot-container">
+      {/* Fixed left-edge hamburger for quickly opening/closing the chat history */}
+      <button
+        className={`global-toggle ${sidebarOpen ? 'open' : ''}`}
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        aria-pressed={sidebarOpen}
+        aria-label={sidebarOpen ? 'Close chats' : 'Open chats'}
+        title={sidebarOpen ? 'Close chats' : 'Open chats'}
+      >
+        {sidebarOpen ? <FiChevronLeft /> : <FiMenu />}
+      </button>
       <div className="chatbot-header">
         <div className="header-content">
           <div>
             <h1>🏥 Healthcare Chatbot</h1>
             <p className="subtitle">Voice & Text Support with AI Model</p>
           </div>
-          <div className="user-info">
-            <div className="user-details">
-              <FiUser className="user-icon" />
-              <span className="username">{currentUser?.username || 'User'}</span>
-            </div>
-            <button className="logout-btn" onClick={onLogout} title="Logout">
-              <FiLogOut />
-              <span>Logout</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              className="header-toggle"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-pressed={sidebarOpen}
+              title={sidebarOpen ? 'Close chats' : 'Open chats'}
+            >
+              {sidebarOpen ? <FiChevronLeft /> : <FiMenu />}
             </button>
+
+            <div className="user-info">
+              <div className="user-details">
+                <FiUser className="user-icon" />
+                <span className="username">{currentUser?.username || 'User'}</span>
+              </div>
+              <button className="logout-btn" onClick={onLogout} title="Logout">
+                <FiLogOut />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -602,14 +638,14 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
         </div>
       )}
 
-      <div className="chat-grid">
+      <div className={`chat-grid ${sidebarOpen ? '' : 'sidebar-closed'}`}>
         {/* Sidebar - Conversations */}
-        <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
+        <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`} aria-hidden={!sidebarOpen}>
           <div className="sidebar-header">
             <h3>Chats</h3>
             <div className="sidebar-actions">
               <button className="btn new-chat" onClick={startNewConversation}>New Chat</button>
-              <button className="btn toggle-sidebar" onClick={() => setSidebarOpen(!sidebarOpen)}>{sidebarOpen ? '◀' : '▶'}</button>
+              {/* <button className="btn toggle-sidebar" onClick={() => setSidebarOpen(!sidebarOpen)}>{sidebarOpen ? '◀' : '▶'}</button> */}
             </div>
           </div>
 
@@ -632,7 +668,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
         </aside>
 
         {/* Messages Container */}
-        <div className="messages-container">
+        <div className="messages-container" ref={messagesContainerRef}>
           {messages.map((msg) => (
             <div
               key={msg.id}
@@ -674,6 +710,9 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
           )}
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Floating sidebar toggle */}
+        
       </div>
 
       {/* Input Area */}
@@ -726,14 +765,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
           </button>
         </form>
 
-        <button
-          onClick={handleClearChat}
-          disabled={isLoading}
-          className="btn btn-clear"
-          title="Clear chat history"
-        >
-          <FiTrash2 /> Clear Chat
-        </button>
+        
       </div>
 
       {/* Browser Support Info */}
@@ -743,12 +775,6 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
             ⚠️ Voice input requires Chrome/Edge browser and microphone permission. Use text input instead.
           </p>
         )}
-        <p className="info">
-          💡 <strong>How to use:</strong> Type a question OR click "Voice Input" to speak to the AI model
-        </p>
-        <p className="info">
-          🔗 Backend: {API_BASE_URL}
-        </p>
       </div>
     </div>
   );
