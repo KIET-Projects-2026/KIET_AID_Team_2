@@ -52,9 +52,6 @@ const Login = ({ onLoginSuccess, onSwitchToSignup }) => {
     <div className={`auth-container ${isAnimating ? 'active' : ''}`}>
       <div className="auth-card">
         <div className="auth-header">
-          <div className="auth-icon-wrapper">
-            <FiLogIn className="auth-icon" />
-          </div>
           <h1 className="auth-title">Welcome back</h1>
           <p className="auth-subtitle">Sign in to continue</p>
         </div>
@@ -68,8 +65,19 @@ const Login = ({ onLoginSuccess, onSwitchToSignup }) => {
           <div className="form-group">
             <label className="form-label" htmlFor="login-password"><FiLock className="label-icon" />Password</label>
             <div className="password-input-wrapper">
-              <input id="login-password" aria-label="password" type={showPassword ? 'text' : 'password'} name="password" placeholder="••••••••" value={formData.password} onChange={handleChange} className="form-input" disabled={isLoading} required />
-              <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)} aria-pressed={showPassword} aria-label="Toggle password visibility">{showPassword ? <FiEyeOff /> : <FiEye />}</button>
+              <input
+                id="login-password"
+                aria-label="password"
+                type="password"
+                name="password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                className="form-input"
+                disabled={isLoading}
+                required
+                style={{ paddingRight: '0.5rem' }}
+              />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
               <button type="button" className="link-button" onClick={handleForgot}>Forgot password?</button>

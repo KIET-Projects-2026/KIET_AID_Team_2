@@ -10,10 +10,11 @@
 }
 
 .home-hero {
-  padding: 2rem 1rem;
-  background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.06));
-  border-bottom: 1px solid rgba(0,0,0,0.04);
+  padding: 3rem 1rem;
+  background: linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%);
+  border-bottom: none;
   margin: -1rem -1rem 0 -1rem;
+  color: #fff;
 }
 
 .hero-inner {
@@ -23,67 +24,72 @@
   padding: 0 1rem;
 }
 
-.hero-inner h1 {
-  font-size: 1.75rem;
-  margin: 0 0 0.75rem 0;
+.home-title {
+  font-size: 2.5rem;
+  margin: 0 0 1rem 0;
   line-height: 1.2;
   font-weight: 700;
-  color: #0f172a;
+  color: #fff;
 }
 
 .lead {
-  color: rgba(31,41,55,0.8);
-  margin-bottom: 1rem;
-  font-size: 0.95rem;
+  color: #e0f2f1;
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
   line-height: 1.5;
 }
 
 .hero-actions {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  flex-direction: row;
+  gap: 1rem;
   justify-content: center;
-  margin-top: 1rem;
-}
-
-.btn {
-  padding: 0.85rem 1.25rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.95rem;
-  border: none;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin-top: 2rem;
 }
 
 .btn.primary {
-  background: linear-gradient(135deg, #10b981, #06b6d4);
+  background: linear-gradient(135deg, #14b8a6, #06b6d4);
   color: white;
-  box-shadow: 0 4px 12px rgba(16,185,129,0.2);
-}
-
-.btn.primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(16,185,129,0.25);
-}
-
-.btn.primary:active {
-  transform: translateY(0);
+  font-size: 1.1rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(20,184,166,0.2);
 }
 
 .btn.outline {
   background: transparent;
-  border: 2px solid rgba(16,185,129,0.2);
-  color: rgba(31,41,55,0.9);
+  border: 2px solid #14b8a6;
+  color: #14b8a6;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.btn.primary:hover {
+  background: #0d9488;
 }
 
 .btn.outline:hover {
-  background: rgba(16,185,129,0.05);
-  border-color: rgba(16,185,129,0.4);
+  background: #e0f2f1;
+  border-color: #06b6d4;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(20,184,166,0.08);
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.features-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.feature-icon {
+  color: #14b8a6;
+  margin-right: 0.5rem;
+  font-size: 1.2rem;
+  vertical-align: middle;
 }
 
 .home-main {

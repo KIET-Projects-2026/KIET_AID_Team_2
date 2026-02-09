@@ -822,27 +822,70 @@ body {
 
 /* ===================== HEADER ===================== */
 .chatbot-header {
-  background: #ffffff; /* white header */
-  color: var(--color-text);
-  padding: 18px 24px;
-  text-align: left;
-  border-bottom: 1px solid rgba(0,0,0,0.04);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem 1rem 2rem;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
 }
 
-.chatbot-header h1 {
-  font-size: var(--font-size-2xl);
-  margin: 0 0 4px 0;
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-tight);
-  line-height: var(--line-height-tight);
+.chatbot-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
 }
 
-.chatbot-header .subtitle {
-  font-size: var(--font-size-sm);
-  opacity: 0.85;
-  letter-spacing: 0.2px;
-  font-weight: var(--font-weight-normal);
-  margin: 0;
+.chatbot-subtitle {
+  font-size: 0.95rem;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.chatbot-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.menu-btn {
+  background: #e0f2f1;
+  color: #14b8a6;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 0.8rem;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.menu-btn:hover {
+  background: #b2dfdb;
+}
+
+.user-avatar {
+  background: #e0f2f1;
+  border-radius: 50%;
+  padding: 0.5rem 0.8rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.logout-btn {
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.logout-btn:hover {
+  background: #fecaca;
 }
 
 /* ===================== ALERTS (DEPRECATED - using react-toastify instead) ===================== */
@@ -1497,11 +1540,9 @@ body {
   overflow-y: auto;
   padding: var(--space-20);
   background: transparent;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
-  min-height: 0; /* critical for proper scroll behavior inside flex */
-  justify-content: flex-start; /* ensure messages start at the top */
+  border: none;
+  min-height: 0;
+  justify-content: flex-start;
   align-items: stretch;
 }
 
@@ -1517,7 +1558,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--space-16);
-  padding-bottom: 8px; /* ensure content not hidden behind input */
+  padding-bottom: 8px;
 }
 
 /* Ensure input area stays at the bottom of the card */

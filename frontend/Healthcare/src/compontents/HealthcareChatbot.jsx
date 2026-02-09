@@ -27,7 +27,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [conversationsLoading, setConversationsLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -1089,32 +1089,18 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
         {sidebarOpen ? <FiChevronLeft /> : <FiMenu />}
       </button> */}
       <div className="chatbot-header">
-        <div className="header-content">
-          <div>
-            <h1>🏥 Healthcare Chatbot</h1>
-            <p className="subtitle">Voice & Text Support with AI Model</p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button
-              className="header-toggle"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              aria-pressed={sidebarOpen}
-              title={sidebarOpen ? 'Close chats' : 'Open chats'}
-            >
-              {sidebarOpen ? <FiChevronLeft /> : <FiMenu />}
-            </button>
-
-            <div className="user-info">
-              <div className="user-details">
-                <FiUser className="user-icon" />
-                <span className="username">{currentUser?.username || 'User'}</span>
-              </div>
-              <button className="logout-btn" onClick={onLogout} title="Logout">
-                <FiLogOut />
-                <span>Logout</span>
-              </button>
-            </div>
-          </div>
+        <div className="chatbot-header-actions">
+          <button className="menu-btn" title="Menu" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <FiMenu />
+          </button>
+        </div>
+        <div className="chatbot-title">
+          <span className="chatbot-logo">🩺</span> Healthcare Chatbot
+          <span className="chatbot-subtitle">Voice & Text Support with AI Model</span>
+        </div>
+        <div className="chatbot-header-actions">
+          <span className="user-avatar">{currentUser?.username || 'User'}</span>
+          <button className="logout-btn" onClick={onLogout}>Logout</button>
         </div>
       </div>
 

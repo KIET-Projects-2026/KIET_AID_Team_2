@@ -1,4 +1,5 @@
 import React from 'react';
+import { FiUserPlus, FiLogIn, FiMic, FiMessageSquare, FiShield, FiBarChart2 } from 'react-icons/fi';
 import './Home.css';
 
 const Home = ({ onSwitchToLogin, onSwitchToSignup }) => {
@@ -6,17 +7,17 @@ const Home = ({ onSwitchToLogin, onSwitchToSignup }) => {
     <div className="home-container">
       <header className="home-hero">
         <div className="hero-inner">
-          <h1>🏥 Healthcare Chatbot</h1>
+          <h1 className="home-title">Welcome to Healthcare Chatbot</h1>
           <p className="lead">Your virtual health assistant — ask questions, get guidance, and save conversations for later.</p>
           <div className="hero-actions">
-            <button className="btn primary" onClick={onSwitchToSignup}>Create Account</button>
-            <button className="btn outline" onClick={onSwitchToLogin}>Sign In</button>
+            <button className="btn primary" onClick={onSwitchToSignup}><FiUserPlus style={{marginRight: '0.5rem'}} />Create Account</button>
+            <button className="btn outline" onClick={onSwitchToLogin}><FiLogIn style={{marginRight: '0.5rem'}} />Sign In</button>
           </div>
         </div>
       </header>
 
       <main className="home-main">
-        <section className="how-to">
+        <section className="how-to card">
           <h2>How to use this bot</h2>
           <ol>
             <li>Create an account or sign in.</li>
@@ -26,17 +27,17 @@ const Home = ({ onSwitchToLogin, onSwitchToSignup }) => {
           </ol>
         </section>
 
-        <section className="features">
+        <section className="features card">
           <h2>Features</h2>
-          <ul>
-            <li>Text and voice input</li>
-            <li>Persistent chat history grouped by conversation</li>
-            <li>Secure accounts and token-based authentication</li>
-            <li>Exportable logs and health statistics</li>
+          <ul className="features-list">
+            <li><FiMic className="feature-icon" /> Text and voice input</li>
+            <li><FiMessageSquare className="feature-icon" /> Persistent chat history grouped by conversation</li>
+            <li><FiShield className="feature-icon" /> Secure accounts and token-based authentication</li>
+            <li><FiBarChart2 className="feature-icon" /> Exportable logs and health statistics</li>
           </ul>
         </section>
 
-        <section className="contact">
+        <section className="contact card">
           <h2>Contact Us</h2>
           <p>If you have feedback, bugs, or collaboration requests, email us at <a href="mailto:hello@healthcare.example">hello@healthcare.example</a> or use the support link in the footer.</p>
         </section>

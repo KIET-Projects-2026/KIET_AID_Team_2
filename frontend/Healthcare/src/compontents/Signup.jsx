@@ -91,9 +91,6 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
     <div className={`auth-container ${isAnimating ? 'active' : ''}`}>
       <div className="auth-card">
         <div className="auth-header">
-          <div className="auth-icon-wrapper signup-icon">
-            <FiUserPlus className="auth-icon" />
-          </div>
           <h1 className="auth-title">Create Account</h1>
           <p className="auth-subtitle">Join us for personalized health assistance</p>
         </div>
@@ -117,8 +114,19 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
           <div className="form-group">
             <label className="form-label" htmlFor="signup-password"><FiLock className="label-icon" />Password</label>
             <div className="password-input-wrapper">
-              <input id="signup-password" type={showPassword ? 'text' : 'password'} name="password" placeholder="Create a strong password" value={formData.password} onChange={handleChange} className="form-input" disabled={isLoading} minLength="6" required />
-              <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)} aria-pressed={showPassword} aria-label="Toggle password visibility">{showPassword ? <FiEyeOff /> : <FiEye />}</button>
+              <input
+                id="signup-password"
+                type="password"
+                name="password"
+                placeholder="Create a strong password"
+                value={formData.password}
+                onChange={handleChange}
+                className="form-input"
+                disabled={isLoading}
+                minLength="6"
+                required
+                style={{ paddingRight: '0.5rem' }}
+              />
             </div>
             {formData.password && (
               <div className="password-strength">
@@ -133,8 +141,19 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
           <div className="form-group">
             <label className="form-label" htmlFor="signup-confirm"><FiLock className="label-icon" />Confirm Password</label>
             <div className="password-input-wrapper">
-              <input id="signup-confirm" type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" placeholder="Confirm your password" value={formData.confirmPassword} onChange={handleChange} className="form-input" disabled={isLoading} minLength="6" required />
-              <button type="button" className="password-toggle" onClick={() => setShowConfirmPassword(!showConfirmPassword)} aria-pressed={showConfirmPassword} aria-label="Toggle password visibility">{showConfirmPassword ? <FiEyeOff /> : <FiEye />}</button>
+              <input
+                id="signup-confirm"
+                type="password"
+                name="confirmPassword"
+                placeholder="Confirm your password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="form-input"
+                disabled={isLoading}
+                minLength="6"
+                required
+                style={{ paddingRight: '0.5rem' }}
+              />
             </div>
           </div>
 
