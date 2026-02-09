@@ -478,16 +478,15 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;  // Keep listening continuously
-    recognition.interimResults = true;
+    recognition.continuous = false;  // Stop after each utterance (more reliable)
+    recognition.interimResults = false;  // Only final results
     recognition.lang = 'en-US';
     recognition.maxAlternatives = 1;
 
     // Wake word to match
     const WAKE_WORD = 'voice';
     let wakeWordTriggered = false;
-    let lastSpeechTime = Date.now();
-    const SILENCE_TIMEOUT = 5000; // Restart after 5 seconds of silence
+    let listeningTimeout;
 
     const isWakeWordDetected = (transcript) => {
       const clean = transcript.toLowerCase().trim().replace(/[^\w\s]/g, '');
@@ -495,45 +494,51 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
       return clean.includes(WAKE_WORD);
     };
 
-    // Track silence and auto-restart
-    let silenceCheckInterval = setInterval(() => {
-      const timeSinceSpeech = Date.now() - lastSpeechTime;
-      if (timeSinceSpeech > SILENCE_TIMEOUT && wakeWordRunningRef.current && !wakeWordTriggered) {
-        console.log('🔕 Wake word: Silence detected, restarting listener...');
-        clearInterval(silenceCheckInterval);
-        try { recognition.abort(); } catch (_) {}
-      }
-    }, 1000);
-
     recognition.onstart = () => {
       wakeWordRunningRef.current = true;
       setWakeWordListening(true);
-      lastSpeechTime = Date.now();
-      console.log('✅ Wake word listener STARTED — say "Voice"');
-    };
-
-    recognition.onaudiostart = () => {
-      console.log('🎧 Wake word: Microphone audio stream active');
+      console.log('✅ Wake word listener STARTED — say "Voice" (10 seconds to speak)');
+      
+      // Auto-stop listening after 10 seconds to avoid hanging
+      listeningTimeout = setTimeout(() => {
+        if (!wakeWordTriggered) {
+          console.log('⏱️ Wake word: 10 second timeout reached, stopping...');
+          try { recognition.stop(); } catch (_) {}
+        }
+      }, 10000);
     };
 
     recognition.onresult = (event) => {
-      // Update speech time on any detection
-      lastSpeechTime = Date.now();
+      // Log ALL detected speech in real-time
+      console.log(`📊 Speech detection event (${event.results.length} results total)`);
       
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        const isFinal = event.results[i].isFinal;
-        if (transcript.trim()) {
-          console.log(`🎤 Wake word: "${transcript}" (final: ${isFinal})`);
+        const result = event.results[i];
+        const isFinal = result.isFinal;
+        
+        // Log ALL alternatives (not just the first one)
+        for (let j = 0; j < result.length; j++) {
+          const alt = result[j];
+          const transcript = alt.transcript.trim();
+          const confidence = (alt.confidence * 100).toFixed(1);
+          
+          if (transcript) {
+            const status = isFinal ? '✅ FINAL' : '🔄 INTERIM';
+            console.log(`${status}: "${transcript}" (${confidence}% confidence)`);
+          }
         }
-
-        if (isWakeWordDetected(transcript)) {
+        
+        // Check first alternative for wake word
+        const mainTranscript = result[0].transcript;
+        if (isWakeWordDetected(mainTranscript)) {
           wakeWordTriggered = true;
           wakeWordRunningRef.current = false;
-          clearInterval(silenceCheckInterval);
-          try { recognition.abort(); } catch (_) {}
+          if (listeningTimeout) clearTimeout(listeningTimeout);
+          try { recognition.stop(); } catch (_) {}
           setWakeWordListening(false);
           console.log('🚀 Wake word DETECTED! Opening assistant...');
+          // Show what was detected
+          toast.success(`🎯 Detected: "${mainTranscript.trim()}"`, { autoClose: 1500 });
           toast.info('🎙️ "Voice" detected! Activating...', { autoClose: 2000 });
           setTimeout(() => openVoiceAssistant(), 300);
           return;
@@ -542,24 +547,24 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
     };
 
     recognition.onend = () => {
-      clearInterval(silenceCheckInterval);
+      if (listeningTimeout) clearTimeout(listeningTimeout);
       wakeWordRunningRef.current = false;
       setWakeWordListening(false);
       if (wakeWordTriggered) return; // don't restart if we triggered the assistant
-      console.log('⏹️ Wake word session ended');
-      // Auto-restart after a pause
+      console.log('⏹️ Wake word: Listening ended, will restart soon');
+      // Auto-restart immediately for continuous availability
       if (wakeWordEnabledRef.current && !voiceAssistantActiveRef.current) {
-        console.log('🔄 Wake word: Will restart in 1s...');
+        console.log('🔄 Wake word: Restarting listener...');
         setTimeout(() => {
           if (wakeWordEnabledRef.current && !voiceAssistantActiveRef.current && !wakeWordRunningRef.current) {
             startWakeWordListener();
           }
-        }, 800);
+        }, 500);
       }
     };
 
     recognition.onerror = (event) => {
-      clearInterval(silenceCheckInterval);
+      if (listeningTimeout) clearTimeout(listeningTimeout);
       wakeWordRunningRef.current = false;
       setWakeWordListening(false);
       console.warn('❌ Wake word error:', event.error);
