@@ -17,6 +17,7 @@ class ProfileUpdateRequest(BaseModel):
     age: int = None
     gender: str = None
     allergies: str = None
+    emergencyContact: str = None
     emergencyEmail: str = None
 
 import torch
@@ -693,7 +694,7 @@ async def update_profile(
         raise HTTPException(status_code=401, detail="Not authenticated")
     # Only allow editing specific fields
     update_fields = {}
-    for field in ['full_name', 'age', 'gender', 'allergies', 'emergencyEmail']:
+    for field in ['full_name', 'age', 'gender', 'allergies', 'emergencyContact', 'emergencyEmail']:
         value = getattr(data, field, None)
         if value is not None:
             update_fields[field] = value
