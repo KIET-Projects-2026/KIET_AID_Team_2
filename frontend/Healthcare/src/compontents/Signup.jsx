@@ -7,7 +7,19 @@ import './Auth.css';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
-  const [formData, setFormData] = useState({ username: '', full_name: '', password: '', confirmPassword: '' });
+  const [formData, setFormData] = useState({
+    username: '',
+    full_name: '',
+    password: '',
+    confirmPassword: '',
+    phone: '',
+    email: '',
+    age: '',
+    gender: '',
+    allergies: '',
+    emergencyContact: '',
+    emergencyEmail: ''
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,10 +64,16 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
   };
 
   const validateForm = () => {
-    if (formData.username.length < 3) { toast.error('Username must be at least 3 characters long'); return false; }
+    if (!formData.username || formData.username.length < 3) { toast.error('Username is required and must be at least 3 characters long'); return false; }
     if (usernameAvailable === false) { toast.error('Username is already taken'); return false; }
     if (formData.password.length < 6) { toast.error('Password must be at least 6 characters long'); return false; }
     if (formData.password !== formData.confirmPassword) { toast.error('Passwords do not match'); return false; }
+    if (!formData.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.email)) { toast.error('Valid email is required'); return false; }
+    if (!formData.emergencyEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.emergencyEmail)) { toast.error('Valid emergency email is required'); return false; }
+    if (!formData.phone || !/^\d{10,15}$/.test(formData.phone)) { toast.error('Valid phone number is required'); return false; }
+    if (!formData.age || isNaN(formData.age) || formData.age < 0 || formData.age > 120) { toast.error('Valid age is required'); return false; }
+    if (!formData.gender) { toast.error('Gender is required'); return false; }
+    if (!formData.emergencyContact) { toast.error('Emergency contact is required'); return false; }
     return true;
   };
 
@@ -66,7 +84,18 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
     setIsLoading(true);
 
     try {
-      const signupData = { username: formData.username, password: formData.password, full_name: formData.full_name || undefined };
+      const signupData = {
+        username: formData.username,
+        password: formData.password,
+        full_name: formData.full_name || undefined,
+        phone: formData.phone,
+        email: formData.email,
+        age: formData.age,
+        gender: formData.gender,
+        allergies: formData.allergies,
+        emergencyContact: formData.emergencyContact,
+        emergencyEmail: formData.emergencyEmail
+      };
       const response = await axios.post(`${API_BASE_URL}/api/auth/signup`, signupData, { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
 
       if (response.data && response.data.token) {
@@ -95,9 +124,10 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
           <p className="auth-subtitle">Join us for personalized health assistance</p>
         </div>
 
+
         <form onSubmit={handleSubmit} className="auth-form" aria-label="Signup form">
           <div className="form-group">
-            <label className="form-label" htmlFor="signup-username"><FiUser className="label-icon" />Username</label>
+            <label className="form-label" htmlFor="signup-username"><FiUser className="label-icon" />Username <span style={{color: 'red'}}>*</span></label>
             <input id="signup-username" type="text" name="username" placeholder="Enter your username" value={formData.username} onChange={handleChange} className="form-input" disabled={isLoading} minLength="3" required />
             <div className="helper-text">
               {usernameChecking && <small>Checking availability...</small>}
@@ -105,10 +135,50 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
               {!usernameChecking && usernameAvailable === true && <small style={{color: '#10b981'}}>Username is available</small>}
             </div>
           </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="signup-emergency-email">Emergency Email <span style={{color: 'red'}}>*</span></label>
+            <input id="signup-emergency-email" type="email" name="emergencyEmail" placeholder="Enter emergency email" value={formData.emergencyEmail} onChange={handleChange} className="form-input" disabled={isLoading} required />
+          </div>
 
           <div className="form-group">
             <label className="form-label" htmlFor="signup-fullname"><FiUser className="label-icon" />Full Name (Optional)</label>
             <input id="signup-fullname" type="text" name="full_name" placeholder="Your full name" value={formData.full_name} onChange={handleChange} className="form-input" disabled={isLoading} />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="signup-email">Email</label>
+            <input id="signup-email" type="email" name="email" placeholder="Enter your email" value={formData.email} onChange={handleChange} className="form-input" disabled={isLoading} required />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="signup-phone">Phone Number</label>
+            <input id="signup-phone" type="tel" name="phone" placeholder="Enter your phone number" value={formData.phone} onChange={handleChange} className="form-input" disabled={isLoading} required pattern="\d{10,15}" />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="signup-age">Age</label>
+            <input id="signup-age" type="number" name="age" placeholder="Enter your age" value={formData.age} onChange={handleChange} className="form-input" disabled={isLoading} min="0" max="120" required />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="signup-gender">Gender</label>
+            <select id="signup-gender" name="gender" value={formData.gender} onChange={handleChange} className="form-input" disabled={isLoading} required>
+              <option value="">Select gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+              <option value="prefer_not_to_say">Prefer not to say</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="signup-allergies">Allergies (Medical Conditions)</label>
+            <input id="signup-allergies" type="text" name="allergies" placeholder="List allergies or medical conditions" value={formData.allergies} onChange={handleChange} className="form-input" disabled={isLoading} />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="signup-emergency">Emergency Contact</label>
+            <input id="signup-emergency" type="text" name="emergencyContact" placeholder="Emergency contact details" value={formData.emergencyContact} onChange={handleChange} className="form-input" disabled={isLoading} required />
           </div>
 
           <div className="form-group">

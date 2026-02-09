@@ -33,6 +33,11 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=6)
     full_name: Optional[str] = None
+    phone: str = Field(..., min_length=5, max_length=20)
+    age: int = Field(..., ge=0, le=120)
+    gender: str = Field(...)
+    allergies: str = Field(...)
+    emergencyContact: str = Field(...)
 
 class UserLogin(BaseModel):
     """User login model"""
@@ -45,7 +50,14 @@ class UserResponse(BaseModel):
     username: str
     email: str
     full_name: Optional[str]
+    phone: Optional[str] = None
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    allergies: Optional[str] = None
+    emergencyContact: Optional[str] = None
+    emergencyEmail: Optional[str] = None
     created_at: str
+    updated_at: Optional[str] = None
 
 class AuthResponse(BaseModel):
     """Authentication response model"""
@@ -212,6 +224,12 @@ class AuthManager:
             'email': user_data.email,
             'password_hash': AuthManager.hash_password(user_data.password),
             'full_name': user_data.full_name,
+            'phone': user_data.phone,
+            'age': user_data.age,
+            'gender': user_data.gender,
+            'allergies': user_data.allergies,
+            'emergencyContact': user_data.emergencyContact,
+            'emergencyEmail': user_data.emergencyEmail,
             'created_at': datetime.now().isoformat(),
             'updated_at': datetime.now().isoformat()
         }
@@ -223,8 +241,15 @@ class AuthManager:
             user_id=user['user_id'],
             username=user['username'],
             email=user['email'],
-            full_name=user['full_name'],
-            created_at=user['created_at']
+            full_name=user.get('full_name'),
+            phone=user.get('phone'),
+            age=user.get('age'),
+            gender=user.get('gender'),
+            allergies=user.get('allergies'),
+            emergencyContact=user.get('emergencyContact'),
+            emergencyEmail=user.get('emergencyEmail'),
+            created_at=user['created_at'],
+            updated_at=user.get('updated_at')
         )
     
     @staticmethod
@@ -270,8 +295,15 @@ class AuthManager:
             user_id=user['user_id'],
             username=user['username'],
             email=user['email'],
-            full_name=user['full_name'],
-            created_at=user['created_at']
+            full_name=user.get('full_name'),
+            phone=user.get('phone'),
+            age=user.get('age'),
+            gender=user.get('gender'),
+            allergies=user.get('allergies'),
+            emergencyContact=user.get('emergencyContact'),
+            emergencyEmail=user.get('emergencyEmail'),
+            created_at=user['created_at'],
+            updated_at=user.get('updated_at')
         )
         
         return token, user_response
@@ -308,8 +340,15 @@ class AuthManager:
             user_id=user['user_id'],
             username=user['username'],
             email=user['email'],
-            full_name=user['full_name'],
-            created_at=user['created_at']
+            full_name=user.get('full_name'),
+            phone=user.get('phone'),
+            age=user.get('age'),
+            gender=user.get('gender'),
+            allergies=user.get('allergies'),
+            emergencyContact=user.get('emergencyContact'),
+            emergencyEmail=user.get('emergencyEmail'),
+            created_at=user['created_at'],
+            updated_at=user.get('updated_at')
         )
     
     @staticmethod

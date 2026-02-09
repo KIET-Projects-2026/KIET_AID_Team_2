@@ -8,10 +8,17 @@
 # pip install python-dotenv
 
 # ===================== 2. IMPORTS =====================
-from fastapi import FastAPI, UploadFile, File, HTTPException, WebSocket, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, HTTPException, WebSocket, BackgroundTasks, Body, Depends
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+class ProfileUpdateRequest(BaseModel):
+    full_name: str = None
+    age: int = None
+    gender: str = None
+    allergies: str = None
+    emergencyEmail: str = None
+
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from peft import PeftModel
@@ -446,6 +453,11 @@ class SignupRequest(BaseModel):
     password: str = Field(..., min_length=6)
     email: Optional[str] = None
     full_name: Optional[str] = None
+    phone: str = Field(..., min_length=5, max_length=20)
+    age: int = Field(..., ge=0, le=120)
+    gender: str = Field(...)
+    allergies: str = Field(...)
+    emergencyContact: str = Field(...)
 
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
@@ -493,8 +505,8 @@ class MongoDBUsersManager:
         hashed = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000)
         return hashed.hex()
 
-    def create_user(self, username: str, password: str, email: Optional[str] = None, full_name: Optional[str] = None) -> dict:
-        """Create new user in MongoDB (DB-only). Ensures `id` field and avoids inserting null email."""
+    def create_user(self, username: str, password: str, email: Optional[str] = None, full_name: Optional[str] = None, phone: str = '', age: int = 0, gender: str = '', allergies: str = '', emergencyContact: str = '') -> dict:
+        """Create new user in MongoDB (DB-only). Ensures `id` field and avoids inserting null email. Extended for extra fields."""
         try:
             self._ensure_connected()
             # Check if username or email already exists (case-insensitive)
@@ -516,7 +528,12 @@ class MongoDBUsersManager:
                 'password_hash': password_hash,
                 'salt': salt,
                 'created_at': datetime.now().isoformat(),
-                'updated_at': datetime.now().isoformat()
+                'updated_at': datetime.now().isoformat(),
+                'phone': phone,
+                'age': age,
+                'gender': gender,
+                'allergies': allergies,
+                'emergencyContact': emergencyContact
             }
             if email:
                 user['email'] = email
@@ -626,6 +643,9 @@ class MongoDBUsersManager:
             user = self.users_collection.find_one({'user_id': session['user_id']})
             if user and 'id' not in user:
                 user['id'] = user.get('user_id', str(user.get('_id', '')))
+            # Ensure emergencyEmail is present (for legacy users)
+            if user is not None and 'emergencyEmail' not in user:
+                user['emergencyEmail'] = user.get('emergency_email', None)
             return user
         except Exception as e:
             logger.error(f"❌ MongoDB error getting user by token: {e}")
@@ -638,6 +658,9 @@ class MongoDBUsersManager:
             user = self.users_collection.find_one({'user_id': user_id})
             if user and 'id' not in user:
                 user['id'] = user.get('user_id', str(user.get('_id', '')))
+            # Ensure emergencyEmail is present (for legacy users)
+            if user is not None and 'emergencyEmail' not in user:
+                user['emergencyEmail'] = user.get('emergency_email', None)
             return user
         except Exception as e:
             logger.error(f"❌ MongoDB error getting user by ID: {e}")
@@ -659,6 +682,58 @@ async def get_current_user(authorization: Optional[str] = Header(None)) -> Optio
     return user
 
 # ===================== 13. API ENDPOINTS =====================
+
+# PATCH endpoint to update user profile (except username, email, phone, emergencyContact)
+@app.patch('/api/auth/me')
+async def update_profile(
+    data: ProfileUpdateRequest = Body(...),
+    current_user: dict = Depends(get_current_user)
+):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    # Only allow editing specific fields
+    update_fields = {}
+    for field in ['full_name', 'age', 'gender', 'allergies', 'emergencyEmail']:
+        value = getattr(data, field, None)
+        if value is not None:
+            update_fields[field] = value
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
+    # Update in DB (MongoDB or JSON)
+    user_id = current_user.get('user_id') or current_user.get('id')
+    # MongoDB
+    if hasattr(users_manager, 'users_collection'):
+        users_manager.users_collection.update_one(
+            {'user_id': user_id},
+            {'$set': update_fields}
+        )
+        user = users_manager.users_collection.find_one({'user_id': user_id})
+    else:
+        # JSON fallback
+        from auth import Database
+        users = Database.load_users()
+        user = users.get(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        user.update(update_fields)
+        from auth import Database
+        Database.save_users(users)
+    # Return updated user profile (same as /api/auth/me)
+    user_profile = {
+        "user_id": user.get("user_id"),
+        "username": user.get("username"),
+        "email": user.get("email"),
+        "full_name": user.get("full_name"),
+        "phone": user.get("phone"),
+        "age": user.get("age"),
+        "gender": user.get("gender"),
+        "allergies": user.get("allergies"),
+        "emergencyContact": user.get("emergencyContact"),
+        "emergencyEmail": user.get("emergencyEmail"),
+        "created_at": user.get("created_at"),
+        "updated_at": user.get("updated_at")
+    }
+    return {"status": "success", "user": user_profile}
 
 @app.get("/")
 async def root():
@@ -719,10 +794,15 @@ async def signup(payload: SignupRequest):
     """Create a new user account"""
     try:
         user = users_manager.create_user(
-            payload.username, 
+            payload.username,
             payload.password,
             email=payload.email,
-            full_name=payload.full_name
+            full_name=payload.full_name,
+            phone=payload.phone,
+            age=payload.age,
+            gender=payload.gender,
+            allergies=payload.allergies,
+            emergencyContact=payload.emergencyContact
         )
         logger.debug(f"Created user object: {user}")
         if 'id' not in user:
@@ -793,8 +873,25 @@ async def logout(authorization: Optional[str] = Header(None)):
 
 @app.get('/api/auth/me')
 async def me(current_user: dict = Depends(get_current_user)):
-    """Get current user info"""
-    return {"status": "success", "user": {"id": current_user['id'], "username": current_user['username']}}
+    """Get current user full profile info"""
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    # Return all relevant fields for the profile page
+    user_profile = {
+        "user_id": current_user.get("user_id"),
+        "username": current_user.get("username"),
+        "email": current_user.get("email"),
+        "full_name": current_user.get("full_name"),
+        "phone": current_user.get("phone"),
+        "age": current_user.get("age"),
+        "gender": current_user.get("gender"),
+        "allergies": current_user.get("allergies"),
+        "emergencyContact": current_user.get("emergencyContact"),
+        "emergencyEmail": current_user.get("emergencyEmail"),
+        "created_at": current_user.get("created_at"),
+        "updated_at": current_user.get("updated_at")
+    }
+    return {"status": "success", "user": user_profile}
 @app.post("/api/chat/text", response_model=VoiceResponse)
 async def text_chat(request: TextInput, background_tasks: BackgroundTasks, current_user: Optional[dict] = Depends(get_current_user)):
     """

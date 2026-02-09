@@ -4,6 +4,8 @@ import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import './App.css'
 import HealthcareChatbot from './compontents/HealthcareChatbot'
+import Profile from './compontents/Profile'
+import { FiUser } from 'react-icons/fi'
 import Login from './compontents/Login'
 import Signup from './compontents/Signup'
 import Home from './compontents/Home'
@@ -15,6 +17,7 @@ function App() {
   const [showLogin, setShowLogin] = useState(true)
   const [showHome, setShowHome] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
+  const [showProfile, setShowProfile] = useState(false)
 
   useEffect(() => {
     // Check if user is already logged in
@@ -124,10 +127,35 @@ function App() {
         )
       ) : (
         <>
-          <HealthcareChatbot 
-            currentUser={currentUser}
-            onLogout={handleLogout}
-          />
+          <div style={{ position: 'fixed', top: 20, right: 30, zIndex: 1000 }}>
+            <button
+              onClick={() => setShowProfile((prev) => !prev)}
+              style={{
+                background: 'white',
+                border: '1px solid #14b8a6',
+                borderRadius: '50%',
+                width: 44,
+                height: 44,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(20,184,166,0.08)',
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+              title="View Profile"
+            >
+              <FiUser size={22} color="#14b8a6" />
+            </button>
+          </div>
+          {showProfile ? (
+            <Profile />
+          ) : (
+            <HealthcareChatbot 
+              currentUser={currentUser}
+              onLogout={handleLogout}
+            />
+          )}
           <Footer />
         </>
       )}

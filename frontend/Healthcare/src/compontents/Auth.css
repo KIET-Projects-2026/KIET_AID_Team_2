@@ -1,3 +1,92 @@
+/* Modern, clean styles for signup and profile pages */
+.auth-container, .profile-container {
+  max-width: 420px;
+  margin: 40px auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(20,184,166,0.10);
+  padding: 2.5rem 2rem 2rem 2rem;
+  font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+}
+
+.auth-container h2, .profile-container h2 {
+  text-align: center;
+  color: #14b8a6;
+  margin-bottom: 1.5rem;
+}
+
+.auth-container form, .profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.auth-container input, .profile-details input {
+  padding: 0.7rem 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #f9f9f9;
+  transition: border 0.2s;
+}
+.auth-container input:focus, .profile-details input:focus {
+  border: 1.5px solid #14b8a6;
+  outline: none;
+}
+
+.auth-container button, .profile-details button {
+  background: #14b8a6;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.2s;
+}
+.auth-container button:hover, .profile-details button:hover {
+  background: #0e9488;
+}
+
+.profile-details label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 500;
+  color: #333;
+}
+
+.profile-details p, .profile-details label {
+  margin: 0;
+}
+
+.profile-details {
+  gap: 0.7rem;
+}
+
+.profile-details input[readonly], .profile-details input[disabled] {
+  background: #f3f3f3;
+  color: #888;
+  border: 1px solid #e0e0e0;
+}
+
+.profile-details button {
+  width: fit-content;
+  align-self: flex-end;
+}
+
+.auth-container .error, .profile-container .error {
+  color: #e53935;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.auth-container .success, .profile-container .success {
+  color: #10b981;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
 /* ===================== AUTH - CLEAN MINIMAL - RESPONSIVE ===================== */
 
 /* BASE STYLES - Mobile First (320px and up) */
