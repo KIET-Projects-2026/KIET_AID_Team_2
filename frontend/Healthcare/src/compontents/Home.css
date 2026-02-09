@@ -11,7 +11,7 @@
 
 .home-hero {
   padding: 3rem 1rem;
-  background: linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%);
+  background: #14b8a6;
   border-bottom: none;
   margin: -1rem -1rem 0 -1rem;
   color: #fff;
@@ -48,11 +48,16 @@
 }
 
 .btn.primary {
-  background: linear-gradient(135deg, #14b8a6, #06b6d4);
+  background: #14b8a6;
   color: white;
+  border: 2px solid #14b8a6;
   font-size: 1.1rem;
   font-weight: 700;
   box-shadow: 0 4px 12px rgba(20,184,166,0.2);
+}
+
+.home-hero .btn.primary {
+  border-color: #ffffff;
 }
 
 .btn.outline {
