@@ -1691,6 +1691,24 @@ body {
   font-weight: 600;
 }
 
+.btn.clear-all-btn {
+  background: #ff6b6b;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.3s ease;
+}
+
+.btn.clear-all-btn:hover {
+  background: #ff5252;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
 .btn.toggle-sidebar {
   background: transparent;
   border: 1px solid var(--color-card-border);

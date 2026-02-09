@@ -62,6 +62,8 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   const wakeWordRecognitionRef = useRef(null);
   const wakeWordRunningRef = useRef(false); // guard against duplicate starts
   const wakeWordEnabledRef = useRef(true);
+  const fetchConversationsInProgressRef = useRef(false); // guard against concurrent fetches
+  const processQueryInProgressRef = useRef(false); // guard against concurrent voice queries
 
   // Keep refs in sync with state for use inside callbacks
   useEffect(() => { voiceAssistantActiveRef.current = voiceAssistantActive; }, [voiceAssistantActive]);
@@ -269,15 +271,19 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
 
     recognition.onend = () => {
       stopAudioVisualizer();
-      // Process the final transcript
+      console.log('🎤 Voice assistant: recognition.onend fired');
+      // Process the final transcript ONCE
       setAssistantTranscript((currentTranscript) => {
+        // Only process if there's actual speech and we're not already processing
         if (currentTranscript && currentTranscript.trim() && voiceAssistantActiveRef.current) {
+          console.log('📤 Processing transcript:', currentTranscript);
           processAssistantQuery(currentTranscript.trim());
         } else if (voiceAssistantActiveRef.current) {
-          // No speech detected, go back to idle
+          console.log('🤐 No speech detected, going idle');
           setAssistantState('idle');
         }
-        return currentTranscript;
+        // Clear transcript after processing to prevent re-processing
+        return '';
       });
     };
 
@@ -309,32 +315,56 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
 
   // ========== VOICE ASSISTANT - Process the spoken query ==========
   const processAssistantQuery = async (query) => {
+    // Guard: prevent concurrent voice queries
+    if (processQueryInProgressRef.current) {
+      console.log('⏳ Voice query already in progress, skipping duplicate');
+      return;
+    }
+    
+    console.log('🎯 processAssistantQuery START:', query);
+    console.log('📌 activeConversationId:', activeConversationId);
+    processQueryInProgressRef.current = true;
     setAssistantState('processing');
     setAssistantResponse('');
 
-    // Add user message to chat
-    const userMessage = {
-      id: generateId(),
-      type: 'user',
-      text: query,
-      timestamp: new Date(),
-      isVoice: true,
-    };
-    setMessages((prev) => [...prev, userMessage]);
-
     try {
-      // Ensure we have a conversation
+      // Add user message to chat FIRST
+      const userMessage = {
+        id: generateId(),
+        type: 'user',
+        text: query,
+        timestamp: new Date(),
+        isVoice: true,
+      };
+      console.log('➕ Adding user message:', query);
+      setMessages((prev) => {
+        console.log(`📊 Message count before user: ${prev.length}`);
+        return [...prev, userMessage];
+      });
+
+      // Use the CURRENTLY SELECTED conversation (don't create new ones)
       let convId = activeConversationId;
+      console.log('🔍 Checking convId:', convId);
+      
       if (!convId) {
+        // Only create new conversation if REALLY no conversation is selected
+        console.log('⚠️ No active conversation ID found, creating new one');
         const createResp = await axios.post(`${API_BASE_URL}/api/chat/conversations`, {});
+        
         if (createResp.data?.status === 'success' && createResp.data.conversation_id) {
           convId = createResp.data.conversation_id;
           setActiveConversationId(convId);
           localStorage.setItem('activeConversationId', convId);
-          fetchConversations();
+          console.log('✅ New conversation created:', convId);
+        } else {
+          throw new Error('Failed to create conversation');
         }
+      } else {
+        console.log('✅ Using existing conversation:', convId);
       }
 
+      // Send message to API
+      console.log('📤 Sending to API with conversation_id:', convId);
       const response = await axios.post(
         `${API_BASE_URL}/api/chat/text`,
         { text: query, conversation_id: convId },
@@ -352,28 +382,34 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
           timestamp: new Date(),
           inputType: 'voice',
         };
-        setMessages((prev) => [...prev, botMessage]);
+        console.log('➕ Adding bot message:', botText);
+        setMessages((prev) => {
+          console.log(`📊 Message count before bot: ${prev.length}`);
+          return [...prev, botMessage];
+        });
 
-        if (response.data.conversation_id) {
-          setActiveConversationId(response.data.conversation_id);
-          localStorage.setItem('activeConversationId', response.data.conversation_id);
-          fetchConversations();
-        }
+        console.log('📊 Current active conversation after response:', activeConversationId);
+        
+        // Refresh conversation list to update message count
+        await fetchConversations();
 
-        // Speak the response (this will auto-trigger next listen in continuous mode)
+        // Speak the response (only once, no duplicate)
         await speakResponse(botText);
       } else {
         const errMsg = 'Sorry, I couldn\'t process that. Please try again.';
         setAssistantResponse(errMsg);
         setAssistantState('idle');
-        speakResponse(errMsg);
+        await speakResponse(errMsg);
       }
     } catch (err) {
-      console.error('Assistant query error:', err);
+      console.error('❌ Assistant query error:', err);
       const errMsg = 'Sorry, something went wrong. Please try again.';
       setAssistantResponse(errMsg);
       setAssistantState('idle');
-      speakResponse(errMsg);
+      await speakResponse(errMsg);
+    } finally {
+      console.log('🎯 processAssistantQuery END');
+      processQueryInProgressRef.current = false;
     }
   };
 
@@ -654,16 +690,26 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
 
   // Fetch user's conversation list
   const fetchConversations = async () => {
+    // Prevent concurrent fetch calls
+    if (fetchConversationsInProgressRef.current) {
+      console.log('⏳ Conversation fetch already in progress, skipping duplicate');
+      return;
+    }
+    
+    fetchConversationsInProgressRef.current = true;
     setConversationsLoading(true);
     try {
       const resp = await axios.get(`${API_BASE_URL}/api/chat/conversations`);
       if (resp.data?.status === 'success') {
-        setConversations(resp.data.data || []);
+        const convList = resp.data.data || [];
+        console.log(`📊 Fetched ${convList.length} conversations`);
+        setConversations(convList);
       }
     } catch (e) {
       console.warn('Failed to load conversations:', e);
     } finally {
       setConversationsLoading(false);
+      fetchConversationsInProgressRef.current = false;
     }
   };
 
@@ -1004,6 +1050,57 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
     setInputText('');
   };
 
+  // Clear all conversations
+  const clearAllChats = async () => {
+    if (!conversations || conversations.length === 0) {
+      toast.info('ℹ️ No chats to clear');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure? This will delete all ${conversations.length} chats. This cannot be undone.`)) {
+      return;
+    }
+
+    setIsLoading(true);
+    let deleted = 0;
+    let failed = 0;
+
+    try {
+      for (const conv of conversations) {
+        try {
+          const resp = await axios.delete(`${API_BASE_URL}/api/chat/conversations/${conv.conversation_id}`);
+          if (resp.data?.status === 'success') {
+            deleted++;
+          } else {
+            failed++;
+          }
+        } catch (err) {
+          console.warn('Failed to delete conversation:', conv.conversation_id);
+          failed++;
+        }
+      }
+
+      // Clear UI
+      setActiveConversationId(null);
+      localStorage.removeItem('activeConversationId');
+      setMessages([
+        { id: generateId(), type: 'bot', text: '🗑️ All chats cleared. Start a new conversation!', timestamp: new Date() }
+      ]);
+      setConversations([]);
+
+      if (failed === 0) {
+        toast.success(`✅ Deleted all ${deleted} chats`);
+      } else {
+        toast.warning(`⚠️ Deleted ${deleted} chats (${failed} failed)`);
+      }
+    } catch (err) {
+      console.error('❌ Error clearing chats:', err);
+      toast.error('Failed to clear all chats');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Delete a conversation
   const deleteConversation = async (conversationId) => {
     if (!conversationId) return;
@@ -1113,6 +1210,11 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
             <h3>Chats</h3>
             <div className="sidebar-actions">
               <button className="btn new-chat" onClick={() => startNewConversation()}>New Chat</button>
+              {conversations.length > 0 && (
+                <button className="btn clear-all-btn" onClick={() => clearAllChats()} title="Delete all chats">
+                  🗑️ Clear All
+                </button>
+              )}
               {/* <button className="btn toggle-sidebar" onClick={() => setSidebarOpen(!sidebarOpen)}>{sidebarOpen ? '◀' : '▶'}</button> */}
             </div>
           </div>
