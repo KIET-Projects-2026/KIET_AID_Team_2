@@ -1,28 +1,246 @@
+/* ===================== FOOTER - RESPONSIVE (Mobile-First) ===================== */
+
+/* BASE STYLES - Mobile First (320px+) */
 .site-footer {
   border-top: 1px solid rgba(0,0,0,0.04);
   background: rgba(255,255,255,0.96);
-  padding: 18px 0;
+  padding: 1.25rem 1rem;
   position: relative;
+  margin-top: auto;
 }
 
 .footer-inner {
   max-width: 1100px;
   margin: 0 auto;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 0 16px;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0;
+  text-align: center;
 }
 
-.brand { font-weight: 700; color: #111827; }
+.brand {
+  font-weight: 700;
+  color: #111827;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
 
-.footer-links a { margin-right: 12px; color: #0ea5a4; text-decoration: none; }
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+}
 
-.footer-links a:hover { text-decoration: underline; }
+.footer-links a {
+  color: #0ea5a4;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-.copyright { color: rgba(31,41,55,0.6); font-size: 13px; }
+.footer-links a:hover {
+  color: #0d9488;
+  text-decoration: underline;
+  background: rgba(16,185,129,0.05);
+}
 
-@media (max-width: 640px) {
-  .footer-inner { flex-direction: column; gap: 8px; text-align: center; }
+.copyright {
+  color: rgba(31,41,55,0.6);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+/* ===================== RESPONSIVE BREAKPOINTS ===================== */
+
+/* Small devices (480px and up) */
+@media (min-width: 480px) {
+  .site-footer {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .footer-inner {
+    gap: 1.25rem;
+  }
+
+  .brand {
+    font-size: 1.05rem;
+  }
+
+  .footer-links {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  .footer-links a {
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Medium devices - Tablets (640px and up) */
+@media (min-width: 640px) {
+  .site-footer {
+    padding: 1.75rem 1.5rem;
+  }
+
+  .footer-inner {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    text-align: left;
+  }
+
+  .brand {
+    flex: 0 0 auto;
+    font-size: 1.1rem;
+  }
+
+  .footer-links {
+    flex: 1;
+    flex-direction: row;
+    gap: 1.25rem;
+    justify-content: center;
+  }
+
+  .footer-links a {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .copyright {
+    flex: 0 0 auto;
+    font-size: 0.875rem;
+  }
+}
+
+/* Large devices - Desktops (768px and up) */
+@media (min-width: 768px) {
+  .site-footer {
+    padding: 2rem 2rem;
+  }
+
+  .footer-inner {
+    gap: 2rem;
+  }
+
+  .brand {
+    font-size: 1.15rem;
+  }
+
+  .footer-links {
+    gap: 1.5rem;
+  }
+
+  .footer-links a {
+    padding: 0.5rem 1rem;
+    font-size: 0.975rem;
+  }
+
+  .copyright {
+    font-size: 0.9rem;
+  }
+}
+
+/* Extra large devices (900px and up) */
+@media (min-width: 900px) {
+  .site-footer {
+    padding: 2.25rem 2.5rem;
+  }
+
+  .footer-inner {
+    gap: 2.5rem;
+  }
+
+  .footer-links {
+    gap: 1.75rem;
+  }
+}
+
+/* Ultra-wide screens (1024px and up) */
+@media (min-width: 1024px) {
+  .site-footer {
+    padding: 2.5rem 3rem;
+  }
+
+  .brand {
+    font-size: 1.2rem;
+  }
+
+  .footer-links {
+    gap: 2rem;
+  }
+
+  .footer-links a {
+    padding: 0.5rem 1.25rem;
+    font-size: 1rem;
+  }
+}
+
+/* Extra ultra-wide (1280px and up) */
+@media (min-width: 1280px) {
+  .site-footer {
+    padding: 3rem 4rem;
+  }
+
+  .footer-inner {
+    gap: 3rem;
+  }
+
+  .footer-links {
+    gap: 2.5rem;
+  }
+}
+
+/* Touch device adjustments */
+@media (hover: none) and (pointer: coarse) {
+  .footer-links a {
+    min-height: 48px;
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+  }
+
+  .site-footer {
+    padding: 1.5rem;
+  }
+}
+
+/* Landscape orientation */
+@media (max-height: 500px) and (orientation: landscape) {
+  .site-footer {
+    padding: 1rem;
+  }
+
+  .footer-inner {
+    gap: 1rem;
+  }
+
+  .footer-links a {
+    padding: 0.25rem 0.75rem;
+    min-height: 40px;
+  }
+
+  .copyright {
+    font-size: 0.8rem;
+  }
+}
+
+/* Reduced motion preference - disable animations */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

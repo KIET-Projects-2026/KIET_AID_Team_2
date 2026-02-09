@@ -1,82 +1,326 @@
-/* Simple, elegant home page styles */
+/* ===================== HOME PAGE - RESPONSIVE (Mobile-First) ===================== */
+
+/* BASE STYLES - Mobile First (320px+) */
 .home-container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(249,250,251,1));
+  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(249,250,251,1));
+  padding: 1rem;
 }
 
 .home-hero {
-  padding: 48px 24px;
-  background: linear-gradient(135deg, rgba(102,126,234,0.12), rgba(118,75,162,0.08));
+  padding: 2rem 1rem;
+  background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.06));
   border-bottom: 1px solid rgba(0,0,0,0.04);
+  margin: -1rem -1rem 0 -1rem;
 }
 
 .hero-inner {
   max-width: 1000px;
   margin: 0 auto;
   text-align: center;
+  padding: 0 1rem;
 }
 
 .hero-inner h1 {
-  font-size: 2.2rem;
-  margin: 0 0 8px 0;
+  font-size: 1.75rem;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #0f172a;
 }
 
 .lead {
   color: rgba(31,41,55,0.8);
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 .hero-actions {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 0.75rem;
   justify-content: center;
-  margin-top: 12px;
+  margin-top: 1rem;
 }
 
 .btn {
-  padding: 10px 14px;
-  border-radius: 10px;
+  padding: 0.85rem 1.25rem;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+  border: none;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn.primary {
   background: linear-gradient(135deg, #10b981, #06b6d4);
   color: white;
-  border: none;
+  box-shadow: 0 4px 12px rgba(16,185,129,0.2);
+}
+
+.btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16,185,129,0.25);
+}
+
+.btn.primary:active {
+  transform: translateY(0);
 }
 
 .btn.outline {
   background: transparent;
-  border: 2px solid rgba(16,185,129,0.12);
+  border: 2px solid rgba(16,185,129,0.2);
   color: rgba(31,41,55,0.9);
+}
+
+.btn.outline:hover {
+  background: rgba(16,185,129,0.05);
+  border-color: rgba(16,185,129,0.4);
 }
 
 .home-main {
   max-width: 1100px;
-  margin: 32px auto;
-  padding: 0 16px 80px 16px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  margin: 2rem auto 0;
+  padding: 0 0 5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
 }
 
 .home-main section {
   background: white;
   border: 1px solid rgba(0,0,0,0.04);
-  padding: 18px;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(16,24,40,0.04);
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
 }
 
 .home-main h2 {
   margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  color: #0f172a;
 }
 
-.contact a { color: #0ea5a4; text-decoration: underline; }
+.home-main ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
 
-@media (max-width: 900px) {
-  .home-main { grid-template-columns: 1fr; padding: 0 12px 40px 12px; }
+.home-main li {
+  margin-bottom: 0.5rem;
+  color: rgba(31,41,55,0.85);
+  line-height: 1.5;
+}
+
+.contact a {
+  color: #0ea5a4;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.contact a:hover {
+  color: #0d9488;
+  text-decoration: underline;
+}
+
+/* ===================== RESPONSIVE BREAKPOINTS ===================== */
+
+/* Small devices (480px and up) */
+@media (min-width: 480px) {
+  .home-hero {
+    padding: 2.5rem 1.5rem;
+  }
+
+  .hero-inner h1 {
+    font-size: 2rem;
+  }
+
+  .hero-actions {
+    flex-direction: row;
+    gap: 1rem;
+  }
+
+  .btn {
+    flex: 1;
+  }
+
+  .home-main {
+    gap: 1.5rem;
+  }
+}
+
+/* Medium devices - Tablets (640px and up) */
+@media (min-width: 640px) {
+  .home-container {
+    padding: 1.5rem;
+  }
+
+  .home-hero {
+    padding: 3rem 2rem;
+    margin: -1.5rem -1.5rem 0 -1.5rem;
+  }
+
+  .hero-inner {
+    padding: 0 2rem;
+  }
+
+  .hero-inner h1 {
+    font-size: 2.25rem;
+  }
+
+  .lead {
+    font-size: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .home-main {
+    margin: 2rem auto 0;
+    gap: 1.75rem;
+    padding: 0 0 3rem;
+  }
+
+  .home-main section {
+    padding: 2rem;
+    border-radius: 12px;
+  }
+
+  .home-main h2 {
+    font-size: 1.4rem;
+    margin-bottom: 1.25rem;
+  }
+}
+
+/* Large devices - Desktops (768px and up) */
+@media (min-width: 768px) {
+  .home-container {
+    padding: 2rem;
+  }
+
+  .home-hero {
+    padding: 4rem 2rem;
+  }
+
+  .hero-inner h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .lead {
+    font-size: 1.1rem;
+  }
+
+  .btn {
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  .home-main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin: 2.5rem auto 0;
+  }
+}
+
+/* Extra large devices (900px and up) */
+@media (min-width: 900px) {
+  .home-hero {
+    padding: 4rem 3rem;
+  }
+
+  .hero-inner h1 {
+    font-size: 2.75rem;
+  }
+
+  .home-main {
+    gap: 2.5rem;
+    padding: 0 0 4rem;
+  }
+
+  .home-main section {
+    padding: 2.25rem;
+  }
+}
+
+/* Ultra-wide screens (1024px and up) */
+@media (min-width: 1024px) {
+  .home-hero {
+    padding: 5rem 3rem;
+  }
+
+  .hero-inner h1 {
+    font-size: 3rem;
+  }
+
+  .home-main section {
+    padding: 2.5rem;
+    border-radius: 14px;
+  }
+}
+
+/* Extra ultra-wide (1280px and up) */
+@media (min-width: 1280px) {
+  .home-hero {
+    padding: 5rem 4rem;
+  }
+
+  .home-main {
+    gap: 3rem;
+  }
+}
+
+/* Touch device adjustments */
+@media (hover: none) and (pointer: coarse) {
+  .btn {
+    min-height: 48px;
+    font-size: 1rem;
+  }
+
+  .contact a {
+    padding: 0.5rem;
+    display: inline-block;
+  }
+}
+
+/* Landscape orientation (reduce padding for better use of screen space) */
+@media (max-height: 500px) and (orientation: landscape) {
+  .home-hero {
+    padding: 1.5rem 2rem;
+  }
+
+  .hero-inner h1 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .lead {
+    font-size: 0.9rem;
+  }
+
+  .home-main {
+    margin: 1rem auto 0;
+    gap: 1rem;
+  }
+}
+
+/* Reduced motion preference - disable animations */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

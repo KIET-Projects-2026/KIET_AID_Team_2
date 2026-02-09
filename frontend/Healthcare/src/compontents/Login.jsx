@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiLock, FiUser, FiEye, FiEyeOff, FiLogIn } from 'react-icons/fi';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import './Auth.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -9,7 +10,6 @@ const Login = ({ onLoginSuccess, onSwitchToSignup }) => {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
   const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => { setTimeout(() => setIsAnimating(true), 80); }, []);
@@ -17,7 +17,6 @@ const Login = ({ onLoginSuccess, onSwitchToSignup }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (error) setError('');
   };
 
   const handleForgot = (e) => {
@@ -29,7 +28,6 @@ const Login = ({ onLoginSuccess, onSwitchToSignup }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
 
     try {
       const response = await axios.post(`${API_BASE_URL}/api/auth/login`, formData, { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
@@ -38,12 +36,13 @@ const Login = ({ onLoginSuccess, onSwitchToSignup }) => {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+        toast.success('🎉 Login successful!');
         onLoginSuccess(response.data);
       } else {
-        setError('Unexpected response. Please try again.');
+        toast.error('Unexpected response. Please try again.');
       }
     } catch (err) {
-      setError(err.response?.data?.detail || err.response?.data?.message || (err.message === 'Network Error' ? `Network error. Is backend running on ${API_BASE_URL}?` : err.message) || 'Login failed.');
+      toast.error(err.response?.data?.detail || err.response?.data?.message || (err.message === 'Network Error' ? `Network error. Is backend running on ${API_BASE_URL}?` : err.message) || 'Login failed.');
     } finally {
       setIsLoading(false);
     }
@@ -59,8 +58,6 @@ const Login = ({ onLoginSuccess, onSwitchToSignup }) => {
           <h1 className="auth-title">Welcome back</h1>
           <p className="auth-subtitle">Sign in to continue</p>
         </div>
-
-        {error && <div className="error-message" role="alert">{error}</div>}
 
         <form onSubmit={handleSubmit} className="auth-form" aria-label="Login form">
           <div className="form-group">

@@ -9,6 +9,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { FiMic, FiSend, FiRefreshCw, FiTrash2, FiVolume2, FiStopCircle, FiLogOut, FiUser, FiMenu, FiChevronLeft } from 'react-icons/fi';
+import { toast } from 'react-toastify';
 import './HealthcareChatbot.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -32,8 +33,6 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(true);
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
 
 
 
@@ -112,15 +111,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
-  useEffect(() => {
-    if (error || successMessage) {
-      const timer = setTimeout(() => {
-        setError('');
-        setSuccessMessage('');
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [error, successMessage]);
+
 
   // Persist active conversation id in localStorage whenever it changes
   useEffect(() => {
@@ -134,7 +125,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   // ========== SPEECH SYNTHESIS (Text-to-Speech) ==========
   const speakResponse = (text) => {
     if (!window.speechSynthesis) {
-      setError('Speech synthesis not supported in this browser');
+      toast.error('Speech synthesis not supported in this browser');
       return;
     }
 
@@ -148,7 +139,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => {
-      setError('Error during speech synthesis');
+      toast.error('Error during speech synthesis');
       setIsSpeaking(false);
     };
 
@@ -175,7 +166,6 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   // Load a conversation's messages
   const loadConversation = async (conversationId) => {
     setIsLoading(true);
-    setError('');
     try {
       const resp = await axios.get(`${API_BASE_URL}/api/chat/conversations/${conversationId}`);
       if (resp.data?.status === 'success') {
@@ -189,11 +179,11 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
         ]);
         setActiveConversationId(conversationId);
         localStorage.setItem('activeConversationId', conversationId);
-        setSuccessMessage('Conversation loaded');
+        toast.success('📁 Conversation loaded');
       }
     } catch (err) {
       console.error('❌ Error loading conversation:', err);
-      setError('Failed to load conversation');
+      toast.error('Failed to load conversation');
       // If load failed (e.g., conversation deleted or unauthorized), clear saved id
       localStorage.removeItem('activeConversationId');
       setActiveConversationId(null);
@@ -205,9 +195,10 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   // Create a new conversation on the server and load it
   const startNewConversation = async (initialMessage = null) => {
     setIsLoading(true);
-    setError('');
     try {
-      const resp = await axios.post(`${API_BASE_URL}/api/chat/conversations`, initialMessage ? { initial_message: initialMessage } : {});
+      // Only include initial_message when it's a plain string (avoid passing DOM/event objects)
+      const payload = (initialMessage && typeof initialMessage === 'string') ? { initial_message: initialMessage } : {};
+      const resp = await axios.post(`${API_BASE_URL}/api/chat/conversations`, payload);
       if (resp.data?.status === 'success' && resp.data.conversation_id) {
         const convId = resp.data.conversation_id;
         setActiveConversationId(convId);
@@ -217,13 +208,13 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
         await loadConversation(convId);
         // refresh list
         fetchConversations();
-        setSuccessMessage('New chat started');
+        toast.success('✨ New chat created');
       } else {
-        setError('Failed to create new conversation');
+        toast.error('Failed to create new conversation');
       }
     } catch (err) {
       console.error('❌ Error creating conversation:', err);
-      setError(err.response?.data?.detail || 'Failed to create conversation');
+      toast.error(err.response?.data?.detail || 'Failed to create conversation');
     } finally {
       setIsLoading(false);
     }
@@ -234,7 +225,6 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
     if (!text.trim()) return;
 
     setIsLoading(true);
-    setError('');
 
     try {
       // Add user message to chat
@@ -282,7 +272,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
         };
 
         setMessages((prev) => [...prev, botMessage]);
-        setSuccessMessage('✅ Response received!');
+        toast.success('✅ Response received!');
 
         // Save conversation id returned by backend for subsequent messages
         if (response.data.conversation_id) {
@@ -292,11 +282,11 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
           fetchConversations();
         }
       } else {
-        setError('❌ Failed to get response from server');
+        toast.error('Failed to get response from server');
       }
     } catch (err) {
       console.error('❌ Error:', err);
-      setError(
+      toast.error(
         err.response?.data?.detail ||
         err.message ||
         'Failed to send message. Please check if backend is running on ' + API_BASE_URL
@@ -308,8 +298,6 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
 
   // ========== VOICE INPUT WITH AUDIO FILE SEND ==========
   const startVoiceRecording = async () => {
-    setError('');
-    
     try {
       console.log('🎤 Starting voice recording...');
 
@@ -356,11 +344,11 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
       mediaRecorder.start();
       mediaRecorderRef.current = mediaRecorder;
       setIsRecording(true);
-      setSuccessMessage('🎙️ Recording... Speak now!');
+      toast.info('🎙️ Recording... Speak now!');
 
     } catch (err) {
       console.error('❌ Microphone error:', err);
-      setError('Microphone access denied. Please check browser permissions.');
+      toast.error('Microphone access denied. Please check browser permissions.');
       setVoiceSupported(false);
     }
   };
@@ -375,7 +363,6 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   // Send audio file to backend for processing
   const sendVoiceAudioToBackend = async (audioBlob, extension = 'webm') => {
     setIsLoading(true);
-    setError('');
 
     try {
       console.log('📤 Sending audio to backend...', { type: audioBlob.type, size: audioBlob.size, extension });
@@ -443,17 +430,17 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
         };
 
         setMessages((prev) => [...prev, botMessage]);
-        setSuccessMessage('✅ Voice message processed!');
+        toast.success('✅ Voice message processed!');
 
         // Speak the response aloud
         speakResponse(response.data.response);
 
       } else {
-        setError('❌ Failed to process voice message');
+        toast.error('Failed to process voice message');
       }
     } catch (err) {
       console.error('❌ Error:', err);
-      setError(
+      toast.error(
         err.response?.data?.detail ||
         err.message ||
         'Failed to process voice. Make sure backend is running.'
@@ -474,7 +461,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
 
   const handleVoiceToggle = () => {
     if (!voiceSupported) {
-      setError('🎤 Voice input not supported in your browser. Use Chrome or Edge.');
+      toast.warning('🎤 Voice input not supported in your browser. Use Chrome or Edge.');
       return;
     }
 
@@ -499,7 +486,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
             timestamp: new Date(),
           },
         ]);
-        setSuccessMessage('Chat cleared');
+        toast.success('🗑️ Chat cleared');
       }
     }
   };
@@ -512,11 +499,10 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   const deleteConversation = async (conversationId) => {
     if (!conversationId) return;
     setIsLoading(true);
-    setError('');
     try {
       const resp = await axios.delete(`${API_BASE_URL}/api/chat/conversations/${conversationId}`);
       if (resp.data?.status === 'success') {
-        setSuccessMessage('Conversation deleted');
+        toast.success('🗑️ Conversation deleted');
         // If we deleted the active conversation, clear UI
         if (activeConversationId === conversationId) {
           setActiveConversationId(null);
@@ -527,7 +513,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
         }
         fetchConversations();
       } else {
-        setError('Failed to delete conversation');
+        toast.error('Failed to delete conversation');
       }
     } catch (err) {
       console.error('❌ Error deleting conversation:', err);
@@ -536,7 +522,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
         try {
           const fallback = await axios.post(`${API_BASE_URL}/api/chat/conversations/${conversationId}/delete`);
           if (fallback.data?.status === 'success') {
-            setSuccessMessage('Conversation deleted (fallback)');
+            toast.success('🗑️ Conversation deleted');
             if (activeConversationId === conversationId) {
               setActiveConversationId(null);
               localStorage.removeItem('activeConversationId');
@@ -551,7 +537,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
           console.error('❌ Fallback delete failed:', e);
         }
       }
-      setError(err.response?.data?.detail || 'Failed to delete conversation');
+      toast.error(err.response?.data?.detail || 'Failed to delete conversation');
     } finally {
       setIsLoading(false);
     }
@@ -560,7 +546,6 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   // ====== FETCH CHAT HISTORY ======
   const fetchHistory = async () => {
     setIsLoading(true);
-    setError('');
     try {
       const resp = await axios.get(`${API_BASE_URL}/api/logs`);
       if (resp.data.status === 'success') {
@@ -575,7 +560,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
         if (msgs.length) setMessages(msgs);
       }
     } catch (err) {
-      setError(err.response?.data?.detail || err.message);
+      toast.error(err.response?.data?.detail || err.message);
     } finally {
       setIsLoading(false);
     }
@@ -585,7 +570,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   return (
     <div className="chatbot-container">
       {/* Fixed left-edge hamburger for quickly opening/closing the chat history */}
-      <button
+      {/* <button
         className={`global-toggle ${sidebarOpen ? 'open' : ''}`}
         onClick={() => setSidebarOpen(!sidebarOpen)}
         aria-pressed={sidebarOpen}
@@ -593,7 +578,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
         title={sidebarOpen ? 'Close chats' : 'Open chats'}
       >
         {sidebarOpen ? <FiChevronLeft /> : <FiMenu />}
-      </button>
+      </button> */}
       <div className="chatbot-header">
         <div className="header-content">
           <div>
@@ -624,19 +609,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
         </div>
       </div>
 
-      {/* Error Message */}
-      {error && (
-        <div className="alert alert-error">
-          {error}
-        </div>
-      )}
-
-      {/* Success Message */}
-      {successMessage && (
-        <div className="alert alert-success">
-          {successMessage}
-        </div>
-      )}
+      {/* Toast notifications are handled by ToastContainer in App */}
 
       <div className={`chat-grid ${sidebarOpen ? '' : 'sidebar-closed'}`}>
         {/* Sidebar - Conversations */}
@@ -644,7 +617,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
           <div className="sidebar-header">
             <h3>Chats</h3>
             <div className="sidebar-actions">
-              <button className="btn new-chat" onClick={startNewConversation}>New Chat</button>
+              <button className="btn new-chat" onClick={() => startNewConversation()}>New Chat</button>
               {/* <button className="btn toggle-sidebar" onClick={() => setSidebarOpen(!sidebarOpen)}>{sidebarOpen ? '◀' : '▶'}</button> */}
             </div>
           </div>

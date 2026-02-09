@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiLock, FiUser, FiEye, FiEyeOff, FiUserPlus } from 'react-icons/fi';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import './Auth.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -10,7 +11,6 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
   const [isAnimating, setIsAnimating] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
 
@@ -35,7 +35,6 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (error) setError('');
 
     if (name === 'username') {
       setUsernameAvailable(null);
@@ -53,10 +52,10 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
   };
 
   const validateForm = () => {
-    if (formData.username.length < 3) { setError('Username must be at least 3 characters long'); return false; }
-    if (usernameAvailable === false) { setError('Username is already taken'); return false; }
-    if (formData.password.length < 6) { setError('Password must be at least 6 characters long'); return false; }
-    if (formData.password !== formData.confirmPassword) { setError('Passwords do not match'); return false; }
+    if (formData.username.length < 3) { toast.error('Username must be at least 3 characters long'); return false; }
+    if (usernameAvailable === false) { toast.error('Username is already taken'); return false; }
+    if (formData.password.length < 6) { toast.error('Password must be at least 6 characters long'); return false; }
+    if (formData.password !== formData.confirmPassword) { toast.error('Passwords do not match'); return false; }
     return true;
   };
 
@@ -65,7 +64,6 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
     if (!validateForm()) return;
 
     setIsLoading(true);
-    setError('');
 
     try {
       const signupData = { username: formData.username, password: formData.password, full_name: formData.full_name || undefined };
@@ -75,13 +73,14 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+        toast.success('✨ Account created successfully!');
         onSignupSuccess(response.data);
-      } else { setError('Unexpected response. Please try again.'); }
+      } else { toast.error('Unexpected response. Please try again.'); }
     } catch (err) {
       let detail = err.response?.data?.detail ?? err.response?.data?.message ?? null;
       if (Array.isArray(detail)) detail = detail.map(d => d.msg || (typeof d === 'string' ? d : JSON.stringify(d))).join('; ');
       if (!detail) { detail = err.response?.status === 400 ? 'Invalid signup data or username already exists' : err.message === 'Network Error' ? `Network error. Is backend running on ${API_BASE_URL}?` : err.message || 'Signup failed.'; }
-      setError(detail);
+      toast.error(detail);
     } finally { setIsLoading(false); }
   };
 
@@ -98,8 +97,6 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
           <h1 className="auth-title">Create Account</h1>
           <p className="auth-subtitle">Join us for personalized health assistance</p>
         </div>
-
-        {error && (<div className="error-message" role="alert">{error}</div>)}
 
         <form onSubmit={handleSubmit} className="auth-form" aria-label="Signup form">
           <div className="form-group">
