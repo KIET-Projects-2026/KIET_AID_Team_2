@@ -322,7 +322,8 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
     }
     
     console.log('🎯 processAssistantQuery START:', query);
-    console.log('📌 activeConversationId:', activeConversationId);
+    console.log('📌 activeConversationId at start:', activeConversationId);
+    console.log('📊 Available conversations:', conversations.length);
     processQueryInProgressRef.current = true;
     setAssistantState('processing');
     setAssistantResponse('');
@@ -338,33 +339,41 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
       };
       console.log('➕ Adding user message:', query);
       setMessages((prev) => {
-        console.log(`📊 Message count before user: ${prev.length}`);
+        console.log(`📊 Messages before user: ${prev.length}`);
         return [...prev, userMessage];
       });
 
-      // Use the CURRENTLY SELECTED conversation (don't create new ones)
+      // Get the conversation ID with smart fallback logic:
+      // 1. Use activeConversationId if set (user selected a chat)
+      // 2. Else use the first/most recent available conversation (chat is open)
+      // 3. Else create a new one
       let convId = activeConversationId;
-      console.log('🔍 Checking convId:', convId);
       
-      if (!convId) {
-        // Only create new conversation if REALLY no conversation is selected
-        console.log('⚠️ No active conversation ID found, creating new one');
+      if (!convId && conversations && conversations.length > 0) {
+        // If no chat selected but chats exist, use the first (most recent) one
+        convId = conversations[0].conversation_id;
+        console.log('📂 No explicit selection - using first available chat:', convId);
+        setActiveConversationId(convId);
+        localStorage.setItem('activeConversationId', convId);
+      } else if (!convId) {
+        // Only create new conversation if no conversations exist at all
+        console.log('⚠️ No chats available - creating new one');
         const createResp = await axios.post(`${API_BASE_URL}/api/chat/conversations`, {});
         
         if (createResp.data?.status === 'success' && createResp.data.conversation_id) {
           convId = createResp.data.conversation_id;
+          console.log('✅ Created new conversation:', convId);
           setActiveConversationId(convId);
           localStorage.setItem('activeConversationId', convId);
-          console.log('✅ New conversation created:', convId);
         } else {
           throw new Error('Failed to create conversation');
         }
       } else {
-        console.log('✅ Using existing conversation:', convId);
+        console.log('✅ Using selected conversation:', convId);
       }
 
-      // Send message to API
-      console.log('📤 Sending to API with conversation_id:', convId);
+      // Send message to API with the conversation ID
+      console.log('📤 Sending to API - conversation:', convId, 'query:', query);
       const response = await axios.post(
         `${API_BASE_URL}/api/chat/text`,
         { text: query, conversation_id: convId },
@@ -382,18 +391,19 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
           timestamp: new Date(),
           inputType: 'voice',
         };
-        console.log('➕ Adding bot message:', botText);
+        console.log('➕ Adding bot response:', botText.substring(0, 50) + '...');
         setMessages((prev) => {
-          console.log(`📊 Message count before bot: ${prev.length}`);
-          return [...prev, botMessage];
+          console.log(`📊 Messages before bot: ${prev.length}`);
+          const updated = [...prev, botMessage];
+          console.log(`📊 Messages after bot: ${updated.length}`);
+          return updated;
         });
 
-        console.log('📊 Current active conversation after response:', activeConversationId);
-        
-        // Refresh conversation list to update message count
+        // Refresh conversation list to update the sidebar
+        console.log('🔄 Refreshing conversation list');
         await fetchConversations();
 
-        // Speak the response (only once, no duplicate)
+        // Speak the response
         await speakResponse(botText);
       } else {
         const errMsg = 'Sorry, I couldn\'t process that. Please try again.';
