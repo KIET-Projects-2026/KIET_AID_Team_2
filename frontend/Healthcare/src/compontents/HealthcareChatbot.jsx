@@ -48,6 +48,31 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   const [wakeWordEnabled, setWakeWordEnabled] = useState(true); // background listening for wake word
   const [wakeWordListening, setWakeWordListening] = useState(false); // UI indicator
 
+  // ========== UNIQUE FEATURES STATE ==========
+  // 1. Emergency SOS Detection
+  const [emergencyDetected, setEmergencyDetected] = useState(false);
+  const [emergencyType, setEmergencyType] = useState('');
+
+  // 2. Mood Tracker
+  const [currentMood, setCurrentMood] = useState(localStorage.getItem('userMood') || '');
+  const [showMoodPicker, setShowMoodPicker] = useState(!localStorage.getItem('userMood'));
+  const [moodHistory, setMoodHistory] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('moodHistory') || '[]'); } catch { return []; }
+  });
+
+  // 3. Health Tips Carousel
+  const [currentTipIndex, setCurrentTipIndex] = useState(0);
+
+  // 4. Symptom Body Map
+  const [showBodyMap, setShowBodyMap] = useState(false);
+  const [selectedBodyPart, setSelectedBodyPart] = useState(null);
+
+  // 5. Chat Export
+  const [exportingPdf, setExportingPdf] = useState(false);
+
+  // 6. Health Dashboard
+  const [showDashboard, setShowDashboard] = useState(false);
+
   // ========== REFS ==========
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -1182,6 +1207,233 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
     }
   };
 
+  // ===================== UNIQUE FEATURES =====================
+
+  // ========== 1. EMERGENCY SOS DETECTION ==========
+  const EMERGENCY_KEYWORDS = [
+    'chest pain', 'heart attack', 'can\'t breathe', 'cannot breathe', 'difficulty breathing',
+    'stroke', 'seizure', 'unconscious', 'bleeding heavily', 'severe bleeding',
+    'choking', 'anaphylaxis', 'allergic reaction severe', 'suicide', 'suicidal',
+    'overdose', 'poisoning', 'severe burn', 'drowning', 'collapsed',
+    'head injury', 'not breathing', 'cardiac arrest', 'blood clot',
+    'paralysis', 'fainting', 'severe pain chest', 'convulsions'
+  ];
+
+  const checkEmergency = useCallback((text) => {
+    const lower = text.toLowerCase();
+    for (const keyword of EMERGENCY_KEYWORDS) {
+      if (lower.includes(keyword)) {
+        setEmergencyDetected(true);
+        setEmergencyType(keyword);
+        return true;
+      }
+    }
+    setEmergencyDetected(false);
+    setEmergencyType('');
+    return false;
+  }, []);
+
+  const dismissEmergency = () => {
+    setEmergencyDetected(false);
+    setEmergencyType('');
+  };
+
+  // ========== 2. MOOD TRACKER ==========
+  const MOODS = [
+    { emoji: '😊', label: 'Happy', color: '#4CAF50' },
+    { emoji: '😐', label: 'Neutral', color: '#FF9800' },
+    { emoji: '😔', label: 'Sad', color: '#2196F3' },
+    { emoji: '😰', label: 'Anxious', color: '#9C27B0' },
+    { emoji: '😴', label: 'Tired', color: '#607D8B' },
+    { emoji: '🤒', label: 'Sick', color: '#F44336' },
+  ];
+
+  const selectMood = (mood) => {
+    setCurrentMood(mood.label);
+    setShowMoodPicker(false);
+    localStorage.setItem('userMood', mood.label);
+
+    const today = new Date().toISOString().split('T')[0];
+    const newHistory = [...moodHistory.filter(m => m.date !== today), { date: today, mood: mood.label, emoji: mood.emoji }];
+    // Keep last 30 days
+    const recent = newHistory.slice(-30);
+    setMoodHistory(recent);
+    localStorage.setItem('moodHistory', JSON.stringify(recent));
+    toast.success(`Mood set to ${mood.emoji} ${mood.label}`);
+  };
+
+  // ========== 3. HEALTH TIPS CAROUSEL ==========
+  const HEALTH_TIPS = [
+    { icon: '💧', tip: 'Drink at least 8 glasses of water daily to stay hydrated.', category: 'Hydration' },
+    { icon: '🏃', tip: '30 minutes of moderate exercise daily can reduce heart disease risk by 35%.', category: 'Exercise' },
+    { icon: '😴', tip: 'Adults need 7-9 hours of sleep. Poor sleep increases diabetes risk.', category: 'Sleep' },
+    { icon: '🥗', tip: 'Eating 5 servings of fruits and vegetables daily boosts immunity.', category: 'Nutrition' },
+    { icon: '🧘', tip: 'Just 10 minutes of daily meditation can reduce stress hormones by 20%.', category: 'Mental Health' },
+    { icon: '🫁', tip: 'Deep breathing exercises can lower blood pressure in just 5 minutes.', category: 'Breathing' },
+    { icon: '👁️', tip: 'Follow the 20-20-20 rule: every 20 min, look 20 ft away for 20 seconds.', category: 'Eye Care' },
+    { icon: '🦷', tip: 'Brush twice daily and floss once. Gum disease links to heart disease.', category: 'Dental' },
+    { icon: '☀️', tip: '15 minutes of sunlight daily helps your body produce Vitamin D.', category: 'Wellness' },
+    { icon: '🧠', tip: 'Learning something new daily strengthens neural connections.', category: 'Brain Health' },
+    { icon: '🫀', tip: 'Laughing for 15 minutes burns up to 40 calories and boosts heart health.', category: 'Heart Health' },
+    { icon: '🍎', tip: 'An apple a day provides 14% of daily Vitamin C. Eat the skin for fiber!', category: 'Nutrition' },
+  ];
+
+  useEffect(() => {
+    const tipTimer = setInterval(() => {
+      setCurrentTipIndex(prev => (prev + 1) % HEALTH_TIPS.length);
+    }, 8000); // rotate every 8 seconds
+    return () => clearInterval(tipTimer);
+  }, []);
+
+  // ========== 4. SYMPTOM BODY MAP ==========
+  const BODY_PARTS = {
+    head: { label: 'Head', x: 50, y: 8, symptoms: ['Headache', 'Dizziness', 'Migraine', 'Blurred vision', 'Ear pain', 'Sore throat'] },
+    chest: { label: 'Chest', x: 50, y: 30, symptoms: ['Chest pain', 'Shortness of breath', 'Cough', 'Heartburn', 'Palpitations'] },
+    abdomen: { label: 'Abdomen', x: 50, y: 45, symptoms: ['Stomach pain', 'Nausea', 'Bloating', 'Diarrhea', 'Constipation', 'Acid reflux'] },
+    leftArm: { label: 'Left Arm', x: 25, y: 35, symptoms: ['Arm pain', 'Numbness', 'Tingling', 'Weakness', 'Swelling'] },
+    rightArm: { label: 'Right Arm', x: 75, y: 35, symptoms: ['Arm pain', 'Numbness', 'Tingling', 'Weakness', 'Swelling'] },
+    back: { label: 'Back', x: 50, y: 55, symptoms: ['Lower back pain', 'Upper back pain', 'Spine stiffness', 'Sciatica', 'Muscle spasm'] },
+    leftLeg: { label: 'Left Leg', x: 38, y: 75, symptoms: ['Leg pain', 'Knee pain', 'Swelling', 'Cramping', 'Joint stiffness'] },
+    rightLeg: { label: 'Right Leg', x: 62, y: 75, symptoms: ['Leg pain', 'Knee pain', 'Swelling', 'Cramping', 'Joint stiffness'] },
+  };
+
+  const handleBodyPartClick = (partKey) => {
+    setSelectedBodyPart(partKey);
+  };
+
+  const handleSymptomSelect = async (symptom) => {
+    const bodyPart = BODY_PARTS[selectedBodyPart];
+    const query = `I have ${symptom.toLowerCase()} in my ${bodyPart.label.toLowerCase()}. What could be the cause and what should I do?`;
+    setShowBodyMap(false);
+    setSelectedBodyPart(null);
+    
+    // Add as a regular text message
+    setInputText('');
+    const userMessage = { id: generateId(), type: 'user', text: query, timestamp: new Date() };
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+
+    try {
+      let convId = activeConversationId;
+      if (!convId) {
+        const createResp = await axios.post(`${API_BASE_URL}/api/chat/conversations`, {});
+        if (createResp.data?.status === 'success') {
+          convId = createResp.data.conversation_id;
+          setActiveConversationId(convId);
+          localStorage.setItem('activeConversationId', convId);
+        }
+      }
+      const response = await axios.post(`${API_BASE_URL}/api/chat/text`, { text: query, conversation_id: convId }, { timeout: 30000 });
+      if (response.data.status === 'success') {
+        const botMessage = { id: generateId(), type: 'bot', text: response.data.response, timestamp: new Date(), inputType: 'text' };
+        setMessages(prev => [...prev, botMessage]);
+        checkEmergency(query);
+        await fetchConversations();
+        toast.success('✅ Symptom analysis complete!');
+      }
+    } catch (err) {
+      toast.error('Failed to analyze symptom');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ========== 5. EXPORT CHAT AS PDF ==========
+  const exportChatPdf = () => {
+    setExportingPdf(true);
+    try {
+      const chatContent = messages.filter(m => m.text).map(m => {
+        const time = m.timestamp.toLocaleString();
+        const sender = m.type === 'user' ? '🧑 You' : '🤖 Bot';
+        return `${sender} [${time}]\n${m.text}\n`;
+      }).join('\n' + '─'.repeat(50) + '\n\n');
+
+      const report = `
+╔══════════════════════════════════════════════════════╗
+║          HEALTHCARE CHATBOT - MEDICAL REPORT         ║
+╚══════════════════════════════════════════════════════╝
+
+Patient: ${currentUser?.username || 'Anonymous'}
+Date: ${new Date().toLocaleDateString()}
+Time: ${new Date().toLocaleTimeString()}
+Total Messages: ${messages.length}
+${currentMood ? `Current Mood: ${currentMood}` : ''}
+
+════════════════════════════════════════════════════════
+                    CONVERSATION LOG
+════════════════════════════════════════════════════════
+
+${chatContent}
+
+════════════════════════════════════════════════════════
+                      DISCLAIMER
+════════════════════════════════════════════════════════
+
+This report is generated by an AI-powered healthcare
+chatbot. It is NOT a substitute for professional medical
+advice, diagnosis, or treatment. Always seek the advice
+of your physician or other qualified health provider.
+
+Generated on: ${new Date().toLocaleString()}
+Powered by: Healthcare AI Chatbot v2.0
+      `.trim();
+
+      // Create downloadable text file (works everywhere, no external library needed)
+      const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Healthcare_Report_${new Date().toISOString().split('T')[0]}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('📄 Medical report exported!');
+    } catch (err) {
+      console.error('Export failed:', err);
+      toast.error('Failed to export report');
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
+  // ========== 6. HEALTH DASHBOARD STATS ==========
+  const getDashboardStats = () => {
+    const userMsgs = messages.filter(m => m.type === 'user');
+    const botMsgs = messages.filter(m => m.type === 'bot');
+    const voiceMsgs = messages.filter(m => m.isVoice || m.inputType === 'voice');
+
+    // Extract topic keywords from user messages
+    const words = userMsgs.map(m => m.text.toLowerCase()).join(' ').split(/\s+/);
+    const healthKeywords = ['pain', 'fever', 'headache', 'cold', 'cough', 'diabetes', 'heart', 'blood',
+      'pressure', 'anxiety', 'depression', 'sleep', 'diet', 'exercise', 'vitamin', 'infection',
+      'allergy', 'breathing', 'stomach', 'skin', 'cancer', 'stress', 'medication', 'treatment'];
+    const topicCounts = {};
+    healthKeywords.forEach(kw => {
+      const count = words.filter(w => w.includes(kw)).length;
+      if (count > 0) topicCounts[kw] = count;
+    });
+    const topTopics = Object.entries(topicCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+    return {
+      totalMessages: messages.length,
+      userMessages: userMsgs.length,
+      botMessages: botMsgs.length,
+      voiceMessages: voiceMsgs.length,
+      totalConversations: conversations.length,
+      topTopics,
+      moodHistory: moodHistory.slice(-7), // last 7 days
+    };
+  };
+
+  // Check emergency on every user message
+  useEffect(() => {
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg && lastMsg.type === 'user') {
+      checkEmergency(lastMsg.text);
+    }
+  }, [messages, checkEmergency]);
+
   // ========== RENDER ==========
   return (
     <div className="chatbot-container">
@@ -1210,6 +1462,193 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
           <button className="logout-btn" onClick={onLogout}>Logout</button>
         </div>
       </div>
+
+      {/* ========== EMERGENCY SOS BANNER ========== */}
+      {emergencyDetected && (
+        <div className="emergency-banner">
+          <div className="emergency-content">
+            <span className="emergency-icon">🚨</span>
+            <div className="emergency-text">
+              <strong>EMERGENCY DETECTED: {emergencyType.toUpperCase()}</strong>
+              <p>If this is a medical emergency, please call emergency services immediately!</p>
+            </div>
+            <div className="emergency-numbers">
+              <a href="tel:911" className="emergency-call">📞 911 (US)</a>
+              <a href="tel:108" className="emergency-call">📞 108 (India)</a>
+              <a href="tel:112" className="emergency-call">📞 112 (EU)</a>
+            </div>
+            <button className="emergency-dismiss" onClick={dismissEmergency}>✕</button>
+          </div>
+        </div>
+      )}
+
+      {/* ========== FEATURE TOOLBAR (below header) ========== */}
+      <div className="feature-toolbar">
+        {/* Mood Tracker */}
+        <div className="toolbar-section mood-section">
+          {showMoodPicker ? (
+            <div className="mood-picker">
+              <span className="mood-label">How are you feeling?</span>
+              <div className="mood-options">
+                {MOODS.map(m => (
+                  <button key={m.label} className="mood-btn" onClick={() => selectMood(m)} title={m.label}
+                    style={{ '--mood-color': m.color }}>
+                    <span className="mood-emoji">{m.emoji}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <button className="mood-display" onClick={() => setShowMoodPicker(true)} title="Change mood">
+              {MOODS.find(m => m.label === currentMood)?.emoji || '😊'} {currentMood}
+            </button>
+          )}
+        </div>
+
+        {/* Health Tips Carousel */}
+        <div className="toolbar-section tips-section">
+          <div className="health-tip-card">
+            <span className="tip-icon">{HEALTH_TIPS[currentTipIndex].icon}</span>
+            <span className="tip-text">{HEALTH_TIPS[currentTipIndex].tip}</span>
+            <span className="tip-category">{HEALTH_TIPS[currentTipIndex].category}</span>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="toolbar-section toolbar-actions">
+          <button className="toolbar-btn" onClick={() => setShowBodyMap(true)} title="Symptom Checker">
+            🫁 Body Map
+          </button>
+          <button className="toolbar-btn" onClick={() => setShowDashboard(!showDashboard)} title="Health Dashboard">
+            📊 Dashboard
+          </button>
+          <button className="toolbar-btn" onClick={exportChatPdf} disabled={exportingPdf || messages.length < 2} title="Export Report">
+            📄 {exportingPdf ? 'Exporting...' : 'Export'}
+          </button>
+        </div>
+      </div>
+
+      {/* ========== HEALTH DASHBOARD PANEL ========== */}
+      {showDashboard && (() => {
+        const stats = getDashboardStats();
+        return (
+          <div className="dashboard-panel">
+            <div className="dashboard-header">
+              <h3>📊 Health Dashboard</h3>
+              <button className="dashboard-close" onClick={() => setShowDashboard(false)}>✕</button>
+            </div>
+            <div className="dashboard-grid">
+              <div className="stat-card">
+                <div className="stat-number">{stats.totalMessages}</div>
+                <div className="stat-label">Total Messages</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-number">{stats.totalConversations}</div>
+                <div className="stat-label">Conversations</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-number">{stats.voiceMessages}</div>
+                <div className="stat-label">Voice Queries</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-number">{stats.userMessages}</div>
+                <div className="stat-label">Questions Asked</div>
+              </div>
+            </div>
+            {stats.topTopics.length > 0 && (
+              <div className="dashboard-topics">
+                <h4>🔥 Your Top Health Topics</h4>
+                <div className="topic-bars">
+                  {stats.topTopics.map(([topic, count]) => (
+                    <div key={topic} className="topic-bar-item">
+                      <span className="topic-name">{topic}</span>
+                      <div className="topic-bar">
+                        <div className="topic-bar-fill" style={{ width: `${Math.min(100, (count / Math.max(...stats.topTopics.map(t => t[1]))) * 100)}%` }} />
+                      </div>
+                      <span className="topic-count">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {stats.moodHistory.length > 0 && (
+              <div className="dashboard-mood">
+                <h4>😊 Mood History (Last 7 days)</h4>
+                <div className="mood-timeline">
+                  {stats.moodHistory.map((m, i) => (
+                    <div key={i} className="mood-day">
+                      <span className="mood-day-emoji">{m.emoji}</span>
+                      <span className="mood-day-date">{new Date(m.date).toLocaleDateString('en', { weekday: 'short' })}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ========== SYMPTOM BODY MAP MODAL ========== */}
+      {showBodyMap && (
+        <div className="body-map-overlay">
+          <div className="body-map-backdrop" onClick={() => { setShowBodyMap(false); setSelectedBodyPart(null); }} />
+          <div className="body-map-panel">
+            <div className="body-map-header">
+              <h3>🫁 Symptom Checker</h3>
+              <p>Click on a body part to select symptoms</p>
+              <button className="body-map-close" onClick={() => { setShowBodyMap(false); setSelectedBodyPart(null); }}>✕</button>
+            </div>
+            <div className="body-map-content">
+              <div className="body-figure">
+                <svg viewBox="0 0 100 100" className="body-svg">
+                  {/* Head */}
+                  <circle cx="50" cy="10" r="7" className={`body-part ${selectedBodyPart === 'head' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('head')} />
+                  {/* Torso */}
+                  <rect x="38" y="20" width="24" height="18" rx="4" className={`body-part ${selectedBodyPart === 'chest' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('chest')} />
+                  {/* Abdomen */}
+                  <rect x="38" y="38" width="24" height="14" rx="4" className={`body-part ${selectedBodyPart === 'abdomen' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('abdomen')} />
+                  {/* Left Arm */}
+                  <rect x="22" y="22" width="14" height="6" rx="3" className={`body-part ${selectedBodyPart === 'leftArm' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('leftArm')} />
+                  <rect x="16" y="28" width="8" height="18" rx="3" className={`body-part ${selectedBodyPart === 'leftArm' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('leftArm')} />
+                  {/* Right Arm */}
+                  <rect x="64" y="22" width="14" height="6" rx="3" className={`body-part ${selectedBodyPart === 'rightArm' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('rightArm')} />
+                  <rect x="76" y="28" width="8" height="18" rx="3" className={`body-part ${selectedBodyPart === 'rightArm' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('rightArm')} />
+                  {/* Back (invisible but clickable) */}
+                  <rect x="40" y="52" width="20" height="8" rx="3" className={`body-part ${selectedBodyPart === 'back' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('back')} />
+                  {/* Left Leg */}
+                  <rect x="38" y="54" width="10" height="24" rx="4" className={`body-part ${selectedBodyPart === 'leftLeg' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('leftLeg')} />
+                  <rect x="36" y="78" width="10" height="14" rx="3" className={`body-part ${selectedBodyPart === 'leftLeg' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('leftLeg')} />
+                  {/* Right Leg */}
+                  <rect x="52" y="54" width="10" height="24" rx="4" className={`body-part ${selectedBodyPart === 'rightLeg' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('rightLeg')} />
+                  <rect x="54" y="78" width="10" height="14" rx="3" className={`body-part ${selectedBodyPart === 'rightLeg' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('rightLeg')} />
+                </svg>
+                {/* Labels */}
+                {Object.entries(BODY_PARTS).map(([key, part]) => (
+                  <button key={key} className={`body-label ${selectedBodyPart === key ? 'selected' : ''}`}
+                    style={{ left: `${part.x}%`, top: `${part.y}%` }}
+                    onClick={() => handleBodyPartClick(key)}>
+                    {part.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Symptom Selector */}
+              {selectedBodyPart && (
+                <div className="symptom-selector">
+                  <h4>Select symptom for <strong>{BODY_PARTS[selectedBodyPart].label}</strong>:</h4>
+                  <div className="symptom-grid">
+                    {BODY_PARTS[selectedBodyPart].symptoms.map(symptom => (
+                      <button key={symptom} className="symptom-btn" onClick={() => handleSymptomSelect(symptom)}>
+                        {symptom}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast notifications are handled by ToastContainer in App */}
 

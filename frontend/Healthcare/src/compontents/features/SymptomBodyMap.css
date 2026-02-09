@@ -1,0 +1,193 @@
+/* =====================================================================
+   SYMPTOM BODY MAP STYLES
+   ===================================================================== */
+
+.body-map-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.body-map-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.body-map-panel {
+  position: relative;
+  background: var(--color-card-bg, #fff);
+  border-radius: 20px;
+  max-width: 550px;
+  width: 92%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: bodyMapIn 0.3s ease;
+}
+
+@keyframes bodyMapIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.body-map-header {
+  padding: 20px 24px 12px;
+  text-align: center;
+  position: relative;
+}
+
+.body-map-header h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.body-map-header p {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary, #666);
+  font-size: 13px;
+}
+
+.body-map-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: 1px solid var(--color-card-border, #ddd);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.body-map-close:hover {
+  background: #f44336;
+  color: white;
+  border-color: #f44336;
+}
+
+.body-map-content {
+  padding: 12px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.body-figure {
+  position: relative;
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+  aspect-ratio: 1 / 1.1;
+}
+
+.body-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.body-part {
+  fill: rgba(0, 128, 128, 0.15);
+  stroke: rgba(0, 128, 128, 0.4);
+  stroke-width: 0.5;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.body-part:hover {
+  fill: rgba(0, 128, 128, 0.35);
+  stroke: teal;
+  stroke-width: 1;
+}
+
+.body-part.selected {
+  fill: rgba(0, 128, 128, 0.5);
+  stroke: teal;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 6px rgba(0, 128, 128, 0.5));
+}
+
+.body-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 9px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 128, 128, 0.2);
+  border-radius: 10px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  color: var(--color-text-primary, #333);
+  white-space: nowrap;
+  z-index: 5;
+}
+
+.body-label:hover,
+.body-label.selected {
+  background: teal;
+  color: white;
+  border-color: teal;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.symptom-selector {
+  background: rgba(0, 128, 128, 0.04);
+  border: 1px solid rgba(0, 128, 128, 0.12);
+  border-radius: 14px;
+  padding: 16px;
+  animation: tipFadeIn 0.3s ease;
+}
+
+.symptom-selector h4 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--color-text-primary, #333);
+}
+
+.symptom-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.symptom-btn {
+  background: white;
+  border: 1px solid rgba(0, 128, 128, 0.2);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--color-text-primary, #333);
+}
+
+.symptom-btn:hover {
+  background: teal;
+  color: white;
+  border-color: teal;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 128, 128, 0.3);
+}
+
+@media (max-width: 768px) {
+  .body-map-panel {
+    width: 96%;
+    max-height: 90vh;
+  }
+}

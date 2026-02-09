@@ -1,0 +1,108 @@
+/* =====================================================================
+   EMERGENCY SOS STYLES
+   ===================================================================== */
+
+.emergency-banner {
+  background: linear-gradient(135deg, #ff1744, #d50000);
+  color: white;
+  padding: 0;
+  animation: emergencyPulse 1.5s ease-in-out infinite alternate;
+  position: relative;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(255, 23, 68, 0.5);
+}
+
+@keyframes emergencyPulse {
+  0% { box-shadow: 0 4px 20px rgba(255, 23, 68, 0.3); }
+  100% { box-shadow: 0 4px 30px rgba(255, 23, 68, 0.7); }
+}
+
+.emergency-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  flex-wrap: wrap;
+}
+
+.emergency-icon {
+  font-size: 32px;
+  animation: emergencyShake 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes emergencyShake {
+  0% { transform: rotate(-10deg) scale(1); }
+  100% { transform: rotate(10deg) scale(1.1); }
+}
+
+.emergency-text {
+  flex: 1;
+  min-width: 200px;
+}
+
+.emergency-text strong {
+  font-size: 16px;
+  display: block;
+  letter-spacing: 1px;
+}
+
+.emergency-text p {
+  font-size: 13px;
+  margin: 4px 0 0;
+  opacity: 0.9;
+}
+
+.emergency-numbers {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.emergency-call {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 24px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.emergency-call:hover {
+  background: white;
+  color: #d50000;
+  transform: scale(1.05);
+}
+
+.emergency-dismiss {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.emergency-dismiss:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+@media (max-width: 768px) {
+  .emergency-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .emergency-numbers {
+    justify-content: center;
+  }
+}
