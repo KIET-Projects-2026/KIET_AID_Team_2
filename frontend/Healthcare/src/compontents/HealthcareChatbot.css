@@ -905,6 +905,41 @@ body {
   background: #b2dfdb;
 }
 
+/* Header username badge (teal accent) */
+.user-badge {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 6px 10px;
+  background: rgba(20,184,166,0.06);
+  border: 1px solid rgba(20,184,166,0.12);
+  color: #064e47; /* darker teal for contrast */
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+/* Profile icon (header) — use teal primary and show initials */
+.btn.profile-icon {
+  background: #14b8a6;
+  color: #fff;
+  border: none;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 1rem;
+  box-shadow: 0 6px 18px rgba(20,184,166,0.12);
+  transition: transform 120ms ease, background 120ms ease;
+}
+.btn.profile-icon svg { color: #fff; width: 18px; height: 18px; }
+.btn.profile-icon:hover { background: #0d9488; transform: translateY(-2px); }
+.btn.profile-icon:focus { outline: 3px solid rgba(20,184,166,0.18); outline-offset: 2px; }
+
 .user-avatar {
   background: #e0f2f1;
   border-radius: 50%;

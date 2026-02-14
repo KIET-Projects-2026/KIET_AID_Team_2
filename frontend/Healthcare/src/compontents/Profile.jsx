@@ -122,9 +122,18 @@ const Profile = ({ onLogout }) => {
       <div className="profile-header">
         <button className="back-btn" onClick={() => window.dispatchEvent(new CustomEvent('closeProfile'))}>◀ Back</button>
         <h2>User Profile</h2>
-        {!editMode && (
-          <button onClick={handleEdit} className="btn edit-btn" aria-label="Edit profile">Edit Profile</button>
-        )}
+
+        {/* action buttons moved to header for better alignment */}
+        <div className="profile-actions header-actions">
+          {!editMode ? (
+            <button onClick={handleEdit} className="btn primary edit-btn" aria-label="Edit profile">Edit Profile</button>
+          ) : (
+            <>
+              <button className="btn primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</button>
+              <button className="btn btn-outline" onClick={handleCancel} disabled={saving}>Cancel</button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="profile-card">
@@ -197,15 +206,6 @@ const Profile = ({ onLogout }) => {
                 </div>
               </>
             )}
-          </div>
-
-          <div className="profile-actions">
-            {editMode ? (
-              <>
-                <button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</button>
-                <button className="btn btn-outline" onClick={handleCancel} disabled={saving}>Cancel</button>
-              </>
-            ) : null}
           </div>
 
           {saveError && <div className="error" style={{ marginTop: 12 }}>{saveError}</div>}

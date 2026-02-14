@@ -1626,8 +1626,9 @@ Powered by: Healthcare AI Chatbot v2.0
               aria-haspopup="menu"
               aria-expanded={profileMenuOpen}
               onClick={() => setProfileMenuOpen(p => !p)}
+              aria-label="Open profile menu"
             >
-              <FiUser />
+              {currentUser?.username ? currentUser.username.charAt(0).toUpperCase() : <FiUser />}
             </button>
 
             <div className={`profile-menu ${profileMenuOpen ? 'open' : ''}`} role="menu" aria-hidden={!profileMenuOpen}>

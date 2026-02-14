@@ -88,6 +88,7 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 1rem;
+  justify-content: space-between; /* keep actions right-aligned */
 }
 .profile-header h2 { margin: 0; flex: 1; text-align: center; }
 /* Place edit button at top-right and keep its width to content */
@@ -99,18 +100,37 @@
   padding: 6px 10px;
   font-size: 0.95rem;
   margin-left: 0.5rem;
-  background: gray;
+  /* match primary profile button appearance */
+  background: #14b8a6;
+  color: #fff;
+  border: 1px solid #14b8a6;
+  border-radius: 8px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(20,184,166,0.08);
 }
+.profile-header .edit-btn:hover { background: #0d9488; transform: translateY(-1px); }
+.profile-header .edit-btn:focus { outline: 3px solid rgba(20,184,166,0.18); outline-offset: 2px; }
+
+/* Back button — teal outline to visually match Cancel */
 .back-btn {
   background: transparent;
-  border: none;
-  color: #0f172a;
+  border: 1px solid #14b8a6;
+  color: #14b8a6;
   font-weight: 600;
   cursor: pointer;
   padding: 6px 10px;
   border-radius: 8px;
 }
-.back-btn:hover { background: rgba(20,184,166,0.06); }
+.back-btn:hover { background: rgba(20,184,166,0.06); color: #0d9488; border-color: #0d9488; }
+
+/* header-specific profile actions (aligned inline) */
+.profile-actions.header-actions {
+  margin-top: 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
 
 .profile-card {
   /* removed card visuals per design request — make details flow with page */
@@ -132,6 +152,44 @@
 .profile-grid input, .profile-grid textarea { width: 100%; max-width: 100%; box-sizing: border-box; }
 
 .profile-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px; }
+
+/* Profile action button colors — explicit to ensure consistent look/hover/focus */
+.profile-actions .btn.primary, .profile-actions button.primary {
+  background: #14b8a6;
+  color: #fff;
+  border: 1px solid #14b8a6;
+  border-radius: 8px;
+  padding: 0.6rem 1.1rem;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(20,184,166,0.08);
+}
+.profile-actions .btn.primary:hover, .profile-actions button.primary:hover {
+  background: #0d9488;
+  border-color: #0d9488;
+  transform: translateY(-1px);
+}
+.profile-actions .btn.primary:active { transform: translateY(1px); }
+.profile-actions .btn.primary:focus {
+  outline: 3px solid rgba(20,184,166,0.18);
+  outline-offset: 2px;
+}
+
+.profile-actions .btn.btn-outline {
+  background: transparent;
+  border: 1px solid #14b8a6;
+  color: #14b8a6;
+  padding: 0.6rem 1.1rem;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.profile-actions .btn.btn-outline:hover {
+  background: rgba(20,184,166,0.06);
+  color: #0d9488;
+  border-color: #0d9488;
+}
+
+.profile-actions button:disabled { opacity: 0.6; cursor: not-allowed; }
+
 .btn-logout { background: #ef4444; border-radius: 8px; padding: 8px 12px; }
 .btn-logout:hover { background: #dc2626; }
 
@@ -166,10 +224,10 @@
     right: 4px;
     top: 50%;
     transform: translateY(-50%);
-    background: #14b8a6;
-    border-radius: 8px;
+    background: none; /* plain icon — no colored background */
+    border-radius: 0;
     border: none;
-    color: #fff;
+    color: inherit;
     cursor: pointer;
     z-index: 2;
   }
@@ -723,7 +781,8 @@
 
   /* Position Save / Cancel as bottom-right inside the profile container */
   .profile-container { position: relative; }
-  .profile-actions {
+  /* keep bottom-right actions only for non-header instances */
+  .profile-actions:not(.header-actions) {
     position: absolute;
     right: 20px;
     bottom: 20px;
@@ -733,7 +792,7 @@
     align-items: center;
     justify-content: flex-end;
   }
-  .profile-actions button {
+  .profile-actions:not(.header-actions) button {
     flex: 0 0 auto !important;
     width: fit-content !important;
   }
