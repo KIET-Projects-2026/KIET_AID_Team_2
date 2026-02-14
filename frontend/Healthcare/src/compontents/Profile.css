@@ -1,4 +1,4 @@
-/* Profile Page - Modern Design */
+/* Profile Page - Compact Design (No Scroll) */
 
 /* CSS Variables */
 :root {
@@ -17,12 +17,12 @@
   --profile-transition: all 0.3s ease;
 }
 
-/* Main Profile Page */
+/* Main Profile Page - No Scroll */
 .profile-page {
-  min-height: 100vh !important;
+  height: 100vh !important;
   width: 100% !important;
   background: #f8fafc !important;
-  padding: 20px !important;
+  padding: 12px !important;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif !important;
   position: fixed !important;
   top: 0 !important;
@@ -30,8 +30,7 @@
   right: 0 !important;
   bottom: 0 !important;
   z-index: 1000 !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
+  overflow: hidden !important;
   pointer-events: auto !important;
   visibility: visible !important;
 }
@@ -48,18 +47,19 @@
   align-items: center;
   justify-content: space-between;
   max-width: 900px;
-  margin: 0 auto 24px;
-  padding: 16px 24px;
+  margin: 0 auto 12px;
+  padding: 10px 16px;
   background: var(--profile-card-bg);
   border-radius: var(--profile-radius);
   box-shadow: var(--profile-shadow);
   position: relative;
   z-index: 1000 !important;
+  flex-shrink: 0;
 }
 
 .profile-header-bar h2 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: var(--profile-text-primary);
   text-align: center;
@@ -68,13 +68,13 @@
 .profile-header-bar .back-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
+  gap: 6px;
+  padding: 8px 12px;
   background: var(--profile-secondary);
   border: 1px solid var(--profile-border);
   border-radius: var(--profile-radius-sm);
   color: var(--profile-text-secondary);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: var(--profile-transition);
 }
@@ -86,30 +86,33 @@
 }
 
 .back-arrow {
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .header-spacer {
-  width: 100px;
+  width: 80px;
 }
 
-/* Profile Content */
+/* Profile Content - Scrollable if needed but compact */
 .profile-content {
   max-width: 900px;
   margin: 0 auto;
   position: relative;
   z-index: 1000 !important;
+  height: calc(100vh - 70px);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-/* Avatar Section */
+/* Avatar Section - Compact */
 .profile-avatar-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 32px 24px;
+  padding: 16px 16px;
   background: linear-gradient(135deg, var(--profile-primary) 0%, #0d9488 100%);
   border-radius: var(--profile-radius);
-  margin-bottom: 24px;
+  margin-bottom: 12px;
   box-shadow: var(--profile-shadow);
   position: relative;
   z-index: 1000 !important;
@@ -117,19 +120,19 @@
 
 .profile-avatar {
   position: relative;
-  width: 100px;
-  height: 100px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: white;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .avatar-initials {
-  font-size: 2.5rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--profile-primary);
 }
@@ -139,28 +142,28 @@
 }
 
 .profile-name {
-  margin: 0 0 6px;
-  font-size: 1.5rem;
+  margin: 0 0 4px;
+  font-size: 1.1rem;
   font-weight: 600;
   color: white;
 }
 
 .profile-email {
-  margin: 0 0 16px;
-  font-size: 0.95rem;
+  margin: 0 0 10px;
+  font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.85);
 }
 
 .btn-edit-profile {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
+  gap: 6px;
+  padding: 6px 14px;
   background: rgba(255, 255, 255, 0.2);
   border: 2px solid rgba(255, 255, 255, 0.4);
   border-radius: var(--profile-radius-sm);
   color: white;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
   transition: var(--profile-transition);
@@ -172,12 +175,19 @@
   border-color: white;
 }
 
-/* Profile Cards Container */
+/* Profile Cards Container - Compact */
 .profile-cards-container {
   display: grid;
-  gap: 20px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
   position: relative;
   z-index: 1000 !important;
+  padding-bottom: 12px;
+}
+
+/* Make the last card (Medical Information) span full width */
+.profile-card-modern:last-child {
+  grid-column: 1 / -1;
 }
 
 /* Modern Profile Card */
@@ -197,38 +207,38 @@
 .card-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 18px 24px;
+  gap: 8px;
+  padding: 12px 16px;
   background: var(--profile-secondary);
   border-bottom: 1px solid var(--profile-border);
 }
 
 .card-icon {
-  font-size: 1.3rem;
+  font-size: 1rem;
 }
 
 .card-header h4 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--profile-text-primary);
 }
 
 .card-content {
-  padding: 24px;
+  padding: 14px;
 }
 
 /* Info Grid */
 .info-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  gap: 12px;
 }
 
 .info-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .info-item.full-width {
@@ -236,7 +246,7 @@
 }
 
 .info-label {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--profile-text-secondary);
   text-transform: uppercase;
@@ -244,7 +254,7 @@
 }
 
 .info-value {
-  font-size: 1rem;
+  font-size: 0.85rem;
   color: var(--profile-text-primary);
   font-weight: 500;
 }
@@ -253,22 +263,23 @@
   color: #dc2626;
   font-weight: 600;
   background: #fef2f2;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: 6px;
   display: inline-block;
+  font-size: 0.8rem;
 }
 
 /* Edit Form */
 .edit-form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  gap: 12px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .form-group.full-width {
@@ -276,16 +287,16 @@
 }
 
 .form-group label {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--profile-text-secondary);
 }
 
 .form-group input {
-  padding: 12px 16px;
+  padding: 10px 12px;
   border: 2px solid var(--profile-border);
   border-radius: var(--profile-radius-sm);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   color: var(--profile-text-primary);
   transition: var(--profile-transition);
 }
@@ -304,9 +315,9 @@
 .profile-actions {
   display: flex;
   justify-content: center;
-  gap: 16px;
-  margin-top: 24px;
-  padding: 20px;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px;
   background: var(--profile-card-bg);
   border-radius: var(--profile-radius);
   box-shadow: var(--profile-shadow);
@@ -316,10 +327,10 @@
 .btn-cancel {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 28px;
+  gap: 6px;
+  padding: 10px 20px;
   border-radius: var(--profile-radius-sm);
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: var(--profile-transition);
@@ -364,13 +375,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 60vh;
+  height: 100%;
   gap: 16px;
 }
 
 .loading-spinner {
-  width: 50px;
-  height: 50px;
+  width: 40px;
+  height: 40px;
   border: 4px solid var(--profile-border);
   border-top-color: var(--profile-primary);
   border-radius: 50%;
@@ -383,7 +394,7 @@
 
 .profile-loading p {
   color: var(--profile-text-secondary);
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
 /* Error State */
@@ -392,17 +403,17 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 60vh;
+  height: 100%;
   gap: 12px;
 }
 
 .error-icon {
-  font-size: 3rem;
+  font-size: 2.5rem;
 }
 
 .profile-error p {
   color: var(--profile-text-secondary);
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
 /* Message Display */
@@ -411,10 +422,10 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 14px 20px;
+  padding: 12px 16px;
   border-radius: var(--profile-radius-sm);
-  margin-top: 20px;
-  font-size: 0.95rem;
+  margin-top: 12px;
+  font-size: 0.85rem;
 }
 
 .profile-message.error {
@@ -425,8 +436,8 @@
 
 /* Button Spinner */
 .btn-spinner {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
@@ -436,19 +447,19 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .profile-page {
-    padding: 12px;
+    padding: 8px;
   }
 
   .profile-header-bar {
-    padding: 12px 16px;
+    padding: 8px 12px;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
   }
 
   .profile-header-bar h2 {
     order: -1;
     width: 100%;
-    font-size: 1.25rem;
+    font-size: 1.1rem;
   }
 
   .header-spacer {
@@ -456,35 +467,43 @@
   }
 
   .profile-avatar-section {
-    padding: 24px 16px;
+    padding: 12px 12px;
   }
 
   .profile-avatar {
-    width: 80px;
-    height: 80px;
+    width: 50px;
+    height: 50px;
   }
 
   .avatar-initials {
-    font-size: 2rem;
-  }
-
-  .profile-name {
     font-size: 1.25rem;
   }
 
+  .profile-name {
+    font-size: 1rem;
+  }
+
   .card-content {
-    padding: 16px;
+    padding: 12px;
   }
 
   .info-grid,
   .edit-form-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 10px;
+  }
+
+  .profile-cards-container {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-card-modern:last-child {
+    grid-column: auto;
   }
 
   .profile-actions {
     flex-direction: column;
-    padding: 16px;
+    padding: 12px;
   }
 
   .btn-save,
@@ -496,45 +515,11 @@
 
 @media (max-width: 480px) {
   .profile-header-bar .back-btn {
-    padding: 8px 12px;
-    font-size: 0.85rem;
-  }
-
-  .profile-avatar {
-    width: 70px;
-    height: 70px;
-  }
-
-  .avatar-initials {
-    font-size: 1.75rem;
-  }
-
-  .profile-name {
-    font-size: 1.1rem;
-  }
-
-  .profile-email {
-    font-size: 0.85rem;
-  }
-
-  .btn-edit-profile {
-    padding: 8px 16px;
-    font-size: 0.85rem;
-  }
-
-  .card-header {
-    padding: 14px 16px;
-  }
-
-  .card-header h4 {
-    font-size: 1rem;
-  }
-
-  .info-label {
+    padding: 6px 10px;
     font-size: 0.75rem;
   }
 
-  .info-value {
-    font-size: 0.95rem;
+  .info-grid {
+    grid-template-columns: 1fr;
   }
 }
