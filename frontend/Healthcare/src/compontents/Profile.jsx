@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-const Profile = () => {
+const Profile = ({ onLogout }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -29,6 +29,13 @@ const Profile = () => {
         if (res.data && res.data.user) {
           setUser(res.data.user);
           setEditData(res.data.user);
+          // Ensure other components (App, Chat) see the latest profile immediately
+          try {
+            localStorage.setItem('user', JSON.stringify(res.data.user));
+            window.dispatchEvent(new CustomEvent('profileUpdated', { detail: res.data.user }));
+          } catch (e) {
+            console.warn('Failed to persist fetched user to localStorage', e);
+          }
         } else {
           setError('Failed to fetch user details');
         }
@@ -74,7 +81,6 @@ const Profile = () => {
         age: editData.age,
         gender: editData.gender,
         allergies: editData.allergies,
-        emergencyContact: editData.emergencyContact,
         emergencyEmail: editData.emergencyEmail,
       };
       const res = await axios.patch(`${API_BASE_URL}/api/auth/me`, updateFields, {
@@ -83,6 +89,14 @@ const Profile = () => {
       if (res.data && res.data.user) {
         setUser(res.data.user);
         setEditMode(false);
+        // Persist updated user to localStorage so the rest of the app sees the change
+        try {
+          localStorage.setItem('user', JSON.stringify(res.data.user));
+          // Notify other components the profile changed
+          window.dispatchEvent(new CustomEvent('profileUpdated', { detail: res.data.user }));
+        } catch (e) {
+          console.warn('Failed to persist updated user to localStorage', e);
+        }
       } else {
         setSaveError('Failed to update profile');
       }
@@ -105,37 +119,101 @@ const Profile = () => {
 
   return (
     <div className="profile-container">
-      <h2>User Profile</h2>
-      <div className="profile-details">
-        <p><strong>Username:</strong> {user.username}</p>
-        <p><strong>Email:</strong> {user.email}</p>
-        <p><strong>Phone:</strong> {user.phone}</p>
-        {!editMode && (
-          <p><strong>Emergency Contact:</strong> {user.emergencyContact}</p>
-        )}
-        {editMode ? (
-          <>
-            <label><strong>Full Name:</strong> <input name="full_name" value={editData.full_name || ''} onChange={handleChange} /></label><br />
-            <label><strong>Age:</strong> <input name="age" value={editData.age || ''} onChange={handleChange} type="number" min="0" max="120" /></label><br />
-            <label><strong>Gender:</strong> <input name="gender" value={editData.gender || ''} onChange={handleChange} /></label><br />
-            <label><strong>Allergies:</strong> <input name="allergies" value={editData.allergies || ''} onChange={handleChange} /></label><br />
-            <label><strong>Emergency Contact:</strong> <input name="emergencyContact" value={editData.emergencyContact || ''} onChange={handleChange} /></label><br />
-            <label><strong>Emergency Email:</strong> <input name="emergencyEmail" value={editData.emergencyEmail || ''} onChange={handleChange} /></label><br />
-            {saveError && <div style={{ color: 'red' }}>{saveError}</div>}
-            <button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
-            <button onClick={handleCancel} disabled={saving}>Cancel</button>
-          </>
-        ) : (
-          <>
-            <p><strong>Full Name:</strong> {user.full_name || '-'}</p>
-            <p><strong>Age:</strong> {user.age}</p>
-            <p><strong>Gender:</strong> {user.gender}</p>
-            <p><strong>Allergies:</strong> {user.allergies}</p>
-            <p><strong>Emergency Contact:</strong> {user.emergencyContact}</p>
-            <p><strong>Emergency Email:</strong> {user.emergencyEmail}</p>
-            <button onClick={handleEdit}>Edit Profile</button>
-          </>
-        )}
+      <div className="profile-header">
+        <button className="back-btn" onClick={() => window.dispatchEvent(new CustomEvent('closeProfile'))}>◀ Back</button>
+        <h2>User Profile</h2>
+      </div>
+
+      <div className="profile-card">
+        <div className="profile-details">
+          <div className="profile-grid">
+            <div>
+              <label>Username</label>
+              <p>{user.username}</p>
+            </div>
+
+            <div>
+              <label>Email</label>
+              <p>{user.email}</p>
+            </div>
+
+            <div>
+              <label>Phone</label>
+              <p>{user.phone || '-'}</p>
+            </div>
+
+            <div>
+              <label>Emergency Contact</label>
+              <p>{user.emergencyContact || '-'}</p>
+            </div>
+
+            {editMode ? (
+              <>
+                <div>
+                  <label>Full name</label>
+                  <input className="form-input" name="full_name" value={editData.full_name || ''} onChange={handleChange} />
+                </div>
+                <div>
+                  <label>Age</label>
+                  <input className="form-input" name="age" value={editData.age || ''} onChange={handleChange} type="number" min="0" max="120" />
+                </div>
+                <div>
+                  <label>Gender</label>
+                  <input className="form-input" name="gender" value={editData.gender || ''} onChange={handleChange} />
+                </div>
+                <div>
+                  <label>Allergies</label>
+                  <input className="form-input" name="allergies" value={editData.allergies || ''} onChange={handleChange} />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label>Emergency Email</label>
+                  <input className="form-input" name="emergencyEmail" value={editData.emergencyEmail || ''} onChange={handleChange} />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label>Full name</label>
+                  <p>{user.full_name || '-'}</p>
+                </div>
+                <div>
+                  <label>Age</label>
+                  <p>{user.age || '-'}</p>
+                </div>
+                <div>
+                  <label>Gender</label>
+                  <p>{user.gender || '-'}</p>
+                </div>
+                <div>
+                  <label>Allergies</label>
+                  <p>{user.allergies || '-'}</p>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label>Emergency Email</label>
+                  <p>{user.emergencyEmail || '-'}</p>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="profile-actions">
+            {editMode ? (
+              <>
+                <button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</button>
+                <button className="btn btn-outline" onClick={handleCancel} disabled={saving}>Cancel</button>
+              </>
+            ) : (
+              <>
+                <button onClick={handleEdit} className="btn">Edit Profile</button>
+                {typeof onLogout === 'function' && (
+                  <button onClick={() => { if (window.confirm('Logout now?')) onLogout(); }} className="btn btn-logout">Logout</button>
+                )}
+              </>
+            )}
+          </div>
+
+          {saveError && <div className="error" style={{ marginTop: 12 }}>{saveError}</div>}
+        </div>
       </div>
     </div>
   );

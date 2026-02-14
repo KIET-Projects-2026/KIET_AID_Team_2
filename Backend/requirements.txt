@@ -2,6 +2,8 @@
 
 # -------- Core FastAPI --------
 fastapi==0.104.1
+# Optional: Async email backend for emergency notifications
+fastapi-mail
 uvicorn==0.24.0
 python-multipart==0.0.6
 pydantic[email]==2.5.0
@@ -29,4 +31,7 @@ dnspython==2.4.2
 
 # -------- Production Server --------
 gunicorn==21.2.0
+
+# -------- HTTP client used by Gemini integration --------
+httpx==0.29.4
  

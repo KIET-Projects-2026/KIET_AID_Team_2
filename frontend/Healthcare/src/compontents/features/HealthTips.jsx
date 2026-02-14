@@ -37,24 +37,14 @@ const HealthTips = ({ currentTipIndex, onTipChange }) => {
 
   return (
     <div className="tips-section">
-      <div className="health-tip-card">
-        <div className="tip-icon">{tip.emoji}</div>
+      <div className="health-tip-card" role="group" aria-label="Health tip">
+        <div className="tip-icon" aria-hidden>{tip.emoji}</div>
         <div className="tip-text">{tip.text}</div>
-        <div className="tip-category">{tip.category}</div>
+        <div className="tip-category" aria-hidden>{tip.category}</div>
       </div>
-      <div style={{ display: 'flex', gap: '4px' }}>
-        <button 
-          onClick={handlePrevTip} 
-          style={{ padding: '4px 8px', fontSize: '12px', border: 'none', background: '#f0f0f0', borderRadius: '4px', cursor: 'pointer' }}
-        >
-          ←
-        </button>
-        <button 
-          onClick={handleNextTip} 
-          style={{ padding: '4px 8px', fontSize: '12px', border: 'none', background: '#f0f0f0', borderRadius: '4px', cursor: 'pointer' }}
-        >
-          →
-        </button>
+      <div className="tips-controls" role="toolbar" aria-label="Tip controls">
+        <button className="tip-btn" onClick={handlePrevTip} aria-label="Previous tip">←</button>
+        <button className="tip-btn" onClick={handleNextTip} aria-label="Next tip">→</button>
       </div>
     </div>
   );

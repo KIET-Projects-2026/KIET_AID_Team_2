@@ -11,6 +11,18 @@ import axios from 'axios';
 import { FiMic, FiSend, FiRefreshCw, FiTrash2, FiVolume2, FiStopCircle, FiLogOut, FiUser, FiMenu, FiChevronLeft, FiX, FiMicOff } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import './HealthcareChatbot.css';
+import {
+  buildUserContext,
+  generateContextualSystemPrompt,
+  getPersonalizedTips,
+  generateWellnessReminder,
+  generateFollowUpQuestions,
+  getQuickActions,
+  getEncouragementMessage,
+  formatTipsSection,
+  enhanceResponseWithContext,
+  PersonalizedInsights,
+} from './features';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -52,20 +64,123 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   // 1. Emergency SOS Detection
   const [emergencyDetected, setEmergencyDetected] = useState(false);
   const [emergencyType, setEmergencyType] = useState('');
+  const [showEmergencyEmailConfirm, setShowEmergencyEmailConfirm] = useState(false);
+  const [emergencyEmailInput, setEmergencyEmailInput] = useState('');
+  const [sendingEmergencyEmail, setSendingEmergencyEmail] = useState(false);
+  const [autoSendNext, setAutoSendNext] = useState(false);
+  const sentEmergencyRef = useRef(false); // prevents duplicate auto-sends during the same session
 
-  // 2. Mood Tracker
-  const [currentMood, setCurrentMood] = useState(localStorage.getItem('userMood') || '');
-  const [showMoodPicker, setShowMoodPicker] = useState(!localStorage.getItem('userMood'));
-  const [moodHistory, setMoodHistory] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('moodHistory') || '[]'); } catch { return []; }
-  });
+
 
   // 3. Health Tips Carousel
-  const [currentTipIndex, setCurrentTipIndex] = useState(0);
 
-  // 4. Symptom Body Map
-  const [showBodyMap, setShowBodyMap] = useState(false);
-  const [selectedBodyPart, setSelectedBodyPart] = useState(null);
+
+  // Initialize WebSocket connection for real-time tips and chat (reconnects handled simply)
+  useEffect(() => {
+    const wsBase = API_BASE_URL.replace(/^http/, 'ws');
+    const wsUrl = `${wsBase}/ws/chat`;
+
+    let ws = null;
+    try {
+      ws = new WebSocket(wsUrl);
+      ws.onopen = () => {
+        console.info('WebSocket connected for tips');
+        setTipsSource('server');
+      };
+
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+          console.debug('WS message:', msg);
+          if ((msg.type && msg.type === 'tips') || msg.tips) {
+            const tipsArr = Array.isArray(msg.tips) ? msg.tips : [];
+            setServerTips(tipsArr);
+            setCurrentTipIndex(0);
+            setTipsSource('server');
+            try { toast.success('Conversation tips received'); } catch (_) {}
+            console.info('Tips updated from server:', tipsArr);
+          }
+        } catch (e) {
+          console.warn('Failed to parse WS message', e);
+        }
+      };
+
+      ws.onclose = () => {
+        console.warn('WebSocket closed');
+        setTipsSource('local');
+      };
+
+      ws.onerror = (e) => {
+        console.error('WebSocket error', e);
+        setTipsSource('local');
+      };
+
+      wsRef.current = ws;
+    } catch (e) {
+      console.warn('Failed to open WebSocket for tips', e);
+      setTipsSource('local');
+    }
+
+    return () => {
+      try {
+        wsRef.current?.close();
+      } catch (e) {}
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Helper: send tips request to server (WS) or fallback to REST/local DB
+  const sendTipsRequest = async (overrideContext = {}, messagesOverride = null) => {
+      const user_context = {
+      topics: Object.fromEntries(getDashboardStats().topTopics || [])
+    };
+
+    // use provided messagesOverride (full conversation) or default to last 10
+    const recent = (messagesOverride && Array.isArray(messagesOverride)
+      ? messagesOverride.map(m => ({ type: m.type, text: m.text }))
+      : messages.slice(-10).map(m => ({ type: m.type, text: m.text })));
+
+    const payload = { type: 'tips_request', user_context: { ...user_context, ...overrideContext }, messages: recent };
+
+    // notify user
+    try { toast.info('Generating tips for your conversation...'); } catch {}
+
+    // Try WS if connected
+    if (wsRef.current && wsRef.current.readyState === 1) {
+      try {
+        wsRef.current.send(JSON.stringify(payload));
+        return;
+      } catch (e) {
+        console.warn('WS send failed, falling back', e);
+      }
+    }
+
+    // Fallback to REST generative endpoint
+    try {
+      const resp = await axios.post(`${API_BASE_URL}/api/generate/tips`, { user_context: payload.user_context, messages: payload.messages });
+      if (resp.data?.status === 'success' && Array.isArray(resp.data.tips)) {
+        setServerTips(resp.data.tips);
+        setTipsSource('server-rest');
+        setCurrentTipIndex(0);
+        return;
+      }
+    } catch (e) {
+      // ignore; we'll fallback locally
+      console.warn('REST generate tips failed', e);
+    }
+
+    // Local fallback using tips DB
+    try {
+      const local = HEALTH_TIPS.map(t => t.tip);
+      setServerTips(local);
+      setTipsSource('local');
+      setCurrentTipIndex(0);
+    } catch (e) {
+      console.warn('Local tips fallback failed', e);
+    }
+  }; 
+
+
 
   // 5. Chat Export
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -165,20 +280,20 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
 
   // ========== AUTO SCROLL TO LATEST MESSAGE ==========
   useEffect(() => {
-    // Only auto-scroll to bottom when the messages container is overflowing.
-    // This avoids pinning a few messages to the bottom and leaving a large empty gap above.
+    // Always scroll to the bottom when messages change so the latest reply is visible.
+    // If the user has manually scrolled up we still jump to the bottom on new incoming messages
+    // (this behavior mirrors most chat apps — change if you prefer a 'sticky' read position).
     const container = messagesContainerRef.current;
-    if (!container) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      return;
-    }
-
-    const isOverflowing = container.scrollHeight > container.clientHeight;
-    if (isOverflowing) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      // keep content at the top when there's no overflow
-      container.scrollTop = 0;
+    try {
+      if (messagesEndRef.current) {
+        // prefer smooth scrolling for better UX
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      } else if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    } catch (e) {
+      // fallback to direct assignment if browser doesn't support smooth
+      if (container) container.scrollTop = container.scrollHeight;
     }
   }, [messages]);
 
@@ -764,7 +879,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
         ]);
         setActiveConversationId(conversationId);
         localStorage.setItem('activeConversationId', conversationId);
-        toast.success('📁 Conversation loaded');
+        
       }
     } catch (err) {
       console.error('❌ Error loading conversation:', err);
@@ -812,6 +927,18 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
     setIsLoading(true);
 
     try {
+      // Build user context for personalized responses
+      const userContext = buildUserContext(null, null, messages, []);
+      const systemPrompt = generateContextualSystemPrompt(userContext);
+      const personalizedTips = getPersonalizedTips(userContext);
+      const wellnessReminder = generateWellnessReminder(userContext);
+      const encouragement = getEncouragementMessage(userContext);
+      const followUpQuestions = generateFollowUpQuestions(userContext);
+      const quickActions = getQuickActions(userContext);
+
+      // Tips feature removed — no personalized or AI-suggested tips will be attached.
+      const mergedTips = [];
+
       // Add user message to chat
       const userMessage = {
         id: generateId(),
@@ -823,7 +950,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
       setMessages((prev) => [...prev, userMessage]);
       setInputText('');
 
-      console.log('📤 Sending text to backend:', text, 'conv=', activeConversationId);
+      console.log('📤 Sending text to backend with context:', { context: userContext });
 
       // If no active conversation, create one first
       let convId = activeConversationId;
@@ -837,23 +964,42 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
         }
       }
 
-      // Send to API (include conversation_id)
+      // Send to API with user context for personalized response
       const response = await axios.post(
         `${API_BASE_URL}/api/chat/text`,
-        { text: text.trim(), conversation_id: convId },
+        { 
+          text: text.trim(), 
+          conversation_id: convId,
+          user_context: {
+            symptoms: userContext.symptoms,
+            system_prompt: systemPrompt,
+          },
+        },
         { timeout: 30000 }
       );
 
       console.log('📥 Received response:', response.data);
 
       if (response.data.status === 'success') {
-        // Add bot response
+        let responseText = response.data.response;
+        
+        // Enhance response with context-aware suggestions
+        const enhancedResponse = enhanceResponseWithContext(responseText, userContext);
+        const tipsSection = formatTipsSection(personalizedTips);
+
+        // Add bot response with enhanced content
         const botMessage = {
           id: generateId(),
           type: 'bot',
-          text: response.data.response,
+          text: enhancedResponse,
           timestamp: new Date(),
           inputType: 'text',
+          context: {
+            wellnessReminder,
+            encouragement,
+            followUpQuestions,
+            quickActions,
+          },
         };
 
         setMessages((prev) => [...prev, botMessage]);
@@ -861,7 +1007,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
 
         // Auto-speak the response if enabled
         if (autoSpeak) {
-          speakResponse(response.data.response);
+          speakResponse(enhancedResponse);
         }
 
         // Save conversation id returned by backend for subsequent messages
@@ -1238,30 +1384,6 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
     setEmergencyType('');
   };
 
-  // ========== 2. MOOD TRACKER ==========
-  const MOODS = [
-    { emoji: '😊', label: 'Happy', color: '#4CAF50' },
-    { emoji: '😐', label: 'Neutral', color: '#FF9800' },
-    { emoji: '😔', label: 'Sad', color: '#2196F3' },
-    { emoji: '😰', label: 'Anxious', color: '#9C27B0' },
-    { emoji: '😴', label: 'Tired', color: '#607D8B' },
-    { emoji: '🤒', label: 'Sick', color: '#F44336' },
-  ];
-
-  const selectMood = (mood) => {
-    setCurrentMood(mood.label);
-    setShowMoodPicker(false);
-    localStorage.setItem('userMood', mood.label);
-
-    const today = new Date().toISOString().split('T')[0];
-    const newHistory = [...moodHistory.filter(m => m.date !== today), { date: today, mood: mood.label, emoji: mood.emoji }];
-    // Keep last 30 days
-    const recent = newHistory.slice(-30);
-    setMoodHistory(recent);
-    localStorage.setItem('moodHistory', JSON.stringify(recent));
-    toast.success(`Mood set to ${mood.emoji} ${mood.label}`);
-  };
-
   // ========== 3. HEALTH TIPS CAROUSEL ==========
   const HEALTH_TIPS = [
     { icon: '💧', tip: 'Drink at least 8 glasses of water daily to stay hydrated.', category: 'Hydration' },
@@ -1278,65 +1400,24 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
     { icon: '🍎', tip: 'An apple a day provides 14% of daily Vitamin C. Eat the skin for fiber!', category: 'Nutrition' },
   ];
 
+  // Tip state + WebSocket ref (was removed earlier; restore to prevent runtime errors)
+  const [serverTips, setServerTips] = useState([]);
+  const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  const [tipsSource, setTipsSource] = useState('local');
+  const wsRef = useRef(null);
+
+  // Tip rotation uses the active tips list (server-provided when available)
   useEffect(() => {
+    const getLength = () => (serverTips && serverTips.length ? serverTips.length : HEALTH_TIPS.length);
+    // rotate index using current active length
     const tipTimer = setInterval(() => {
-      setCurrentTipIndex(prev => (prev + 1) % HEALTH_TIPS.length);
+      const len = getLength();
+      setCurrentTipIndex(prev => (prev + 1) % Math.max(1, len));
     }, 8000); // rotate every 8 seconds
     return () => clearInterval(tipTimer);
-  }, []);
+  }, [serverTips]);
 
-  // ========== 4. SYMPTOM BODY MAP ==========
-  const BODY_PARTS = {
-    head: { label: 'Head', x: 50, y: 8, symptoms: ['Headache', 'Dizziness', 'Migraine', 'Blurred vision', 'Ear pain', 'Sore throat'] },
-    chest: { label: 'Chest', x: 50, y: 30, symptoms: ['Chest pain', 'Shortness of breath', 'Cough', 'Heartburn', 'Palpitations'] },
-    abdomen: { label: 'Abdomen', x: 50, y: 45, symptoms: ['Stomach pain', 'Nausea', 'Bloating', 'Diarrhea', 'Constipation', 'Acid reflux'] },
-    leftArm: { label: 'Left Arm', x: 25, y: 35, symptoms: ['Arm pain', 'Numbness', 'Tingling', 'Weakness', 'Swelling'] },
-    rightArm: { label: 'Right Arm', x: 75, y: 35, symptoms: ['Arm pain', 'Numbness', 'Tingling', 'Weakness', 'Swelling'] },
-    back: { label: 'Back', x: 50, y: 55, symptoms: ['Lower back pain', 'Upper back pain', 'Spine stiffness', 'Sciatica', 'Muscle spasm'] },
-    leftLeg: { label: 'Left Leg', x: 38, y: 75, symptoms: ['Leg pain', 'Knee pain', 'Swelling', 'Cramping', 'Joint stiffness'] },
-    rightLeg: { label: 'Right Leg', x: 62, y: 75, symptoms: ['Leg pain', 'Knee pain', 'Swelling', 'Cramping', 'Joint stiffness'] },
-  };
 
-  const handleBodyPartClick = (partKey) => {
-    setSelectedBodyPart(partKey);
-  };
-
-  const handleSymptomSelect = async (symptom) => {
-    const bodyPart = BODY_PARTS[selectedBodyPart];
-    const query = `I have ${symptom.toLowerCase()} in my ${bodyPart.label.toLowerCase()}. What could be the cause and what should I do?`;
-    setShowBodyMap(false);
-    setSelectedBodyPart(null);
-    
-    // Add as a regular text message
-    setInputText('');
-    const userMessage = { id: generateId(), type: 'user', text: query, timestamp: new Date() };
-    setMessages(prev => [...prev, userMessage]);
-    setIsLoading(true);
-
-    try {
-      let convId = activeConversationId;
-      if (!convId) {
-        const createResp = await axios.post(`${API_BASE_URL}/api/chat/conversations`, {});
-        if (createResp.data?.status === 'success') {
-          convId = createResp.data.conversation_id;
-          setActiveConversationId(convId);
-          localStorage.setItem('activeConversationId', convId);
-        }
-      }
-      const response = await axios.post(`${API_BASE_URL}/api/chat/text`, { text: query, conversation_id: convId }, { timeout: 30000 });
-      if (response.data.status === 'success') {
-        const botMessage = { id: generateId(), type: 'bot', text: response.data.response, timestamp: new Date(), inputType: 'text' };
-        setMessages(prev => [...prev, botMessage]);
-        checkEmergency(query);
-        await fetchConversations();
-        toast.success('✅ Symptom analysis complete!');
-      }
-    } catch (err) {
-      toast.error('Failed to analyze symptom');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // ========== 5. EXPORT CHAT AS PDF ==========
   const exportChatPdf = () => {
@@ -1357,7 +1438,7 @@ Patient: ${currentUser?.username || 'Anonymous'}
 Date: ${new Date().toLocaleDateString()}
 Time: ${new Date().toLocaleTimeString()}
 Total Messages: ${messages.length}
-${currentMood ? `Current Mood: ${currentMood}` : ''}
+
 
 ════════════════════════════════════════════════════════
                     CONVERSATION LOG
@@ -1422,7 +1503,6 @@ Powered by: Healthcare AI Chatbot v2.0
       voiceMessages: voiceMsgs.length,
       totalConversations: conversations.length,
       topTopics,
-      moodHistory: moodHistory.slice(-7), // last 7 days
     };
   };
 
@@ -1433,6 +1513,42 @@ Powered by: Healthcare AI Chatbot v2.0
       checkEmergency(lastMsg.text);
     }
   }, [messages, checkEmergency]);
+
+  // Auto-send emergency email if user opted in (runs when emergencyDetected changes)
+  useEffect(() => {
+    if (!emergencyDetected) {
+      sentEmergencyRef.current = false; // reset for next session
+      return;
+    }
+    // Only auto-send once per detection
+    if (sentEmergencyRef.current) return;
+
+    const contact = currentUser?.emergencyEmail;
+    const auto = !!currentUser?.emergencyAutoSend;
+    if (auto && contact) {
+      (async () => {
+        try {
+          sentEmergencyRef.current = true;
+          setSendingEmergencyEmail(true);
+          const convId = activeConversationId || (conversations[0] && conversations[0].conversation_id) || null;
+          const recent = messages.slice(-50).map(m => ({ type: m.type, text: m.text, timestamp: m.timestamp }));
+          const resp = await axios.post(`${API_BASE_URL}/api/notify/emergency`, {
+            conversation_id: convId,
+            contact_email: contact,
+            alert_message: emergencyType,
+            messages: recent,
+          });
+          toast.success(resp.data?.message || 'Emergency email automatically queued');
+          setShowEmergencyEmailConfirm(false);
+        } catch (err) {
+          console.error('❌ Auto emergency send failed', err);
+          toast.error(err.response?.data?.detail || err.message || 'Failed to auto-send emergency email');
+        } finally {
+          setSendingEmergencyEmail(false);
+        }
+      })();
+    }
+  }, [emergencyDetected, currentUser, activeConversationId, conversations, messages, emergencyType]);
 
   // ========== RENDER ==========
   return (
@@ -1454,12 +1570,21 @@ Powered by: Healthcare AI Chatbot v2.0
           </button>
         </div>
         <div className="chatbot-title">
-          <span className="chatbot-logo">🩺</span> Healthcare Chatbot
+          <span className="chatbot-logo"></span> Healthcare Chatbot
           <span className="chatbot-subtitle">Voice & Text Support with AI Model</span>
         </div>
         <div className="chatbot-header-actions">
-          <span className="user-avatar">{currentUser?.username || 'User'}</span>
-          <button className="logout-btn" onClick={onLogout}>Logout</button>
+          
+          <span className="user-badge">{currentUser?.username || 'User'}</span>
+          {/* show profile icon instead of Logout; clicking opens the Profile pane */}
+          <button
+            className="btn profile-icon"
+            title="Open profile"
+            aria-label="Open profile"
+            onClick={() => window.dispatchEvent(new CustomEvent('openProfile'))}
+          >
+            <FiUser />
+          </button>
         </div>
       </div>
 
@@ -1477,48 +1602,183 @@ Powered by: Healthcare AI Chatbot v2.0
               <a href="tel:108" className="emergency-call">📞 108 (India)</a>
               <a href="tel:112" className="emergency-call">📞 112 (EU)</a>
             </div>
-            <button className="emergency-dismiss" onClick={dismissEmergency}>✕</button>
+
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button
+                className="toolbar-btn"
+                onClick={() => {
+                  setShowEmergencyEmailConfirm(true);
+                  setEmergencyEmailInput(currentUser?.emergencyEmail || '');
+                  setAutoSendNext(!!currentUser?.emergencyAutoSend);
+                }}
+                title="Send email to emergency contact"
+              >
+                ✉️ Send Email
+              </button>
+
+              <button
+                className="toolbar-btn"
+                onClick={async () => {
+                  // Quick send without confirmation (uses saved emergencyEmail).
+                  // If missing, try to refresh profile from server to pick up recent changes.
+                  let contact = currentUser?.emergencyEmail;
+                  if (!contact) {
+                    try {
+                      const token = localStorage.getItem('token');
+                      if (!token) {
+                        toast.error('Not authenticated. Please log in to use Quick Send.');
+                        return;
+                      }
+
+                      const resp = await axios.get(`${API_BASE_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+                      if (resp.data?.user?.emergencyEmail) {
+                        contact = resp.data.user.emergencyEmail;
+                        // Persist and notify other components
+                        try {
+                          localStorage.setItem('user', JSON.stringify(resp.data.user));
+                          window.dispatchEvent(new CustomEvent('profileUpdated', { detail: resp.data.user }));
+                        } catch (e) {
+                          console.warn('Failed to persist refreshed profile locally', e);
+                        }
+                      }
+                    } catch (e) {
+                      console.warn('Failed to refresh user profile before quick send', e);
+                      // If the request was unauthorized, let the user know
+                      if (e?.response?.status === 401) {
+                        toast.error('Session expired. Please sign in again to send emergency emails.');
+                        return;
+                      }
+                    }
+                  }
+
+                  if (!contact) {
+                    toast.error('No emergency email configured. Please set it in your profile or use Send Email to enter one.');
+                    return;
+                  }
+
+                  try {
+                    setSendingEmergencyEmail(true);
+                    const convId = activeConversationId || (conversations[0] && conversations[0].conversation_id) || null;
+                    const recent = messages.slice(-50).map(m => ({ type: m.type, text: m.text, timestamp: m.timestamp }));
+                    const resp = await axios.post(`${API_BASE_URL}/api/notify/emergency`, {
+                      conversation_id: convId,
+                      contact_email: contact,
+                      alert_message: emergencyType,
+                      messages: recent,
+                    });
+                    toast.success(resp.data?.message || 'Emergency email queued');
+                    dismissEmergency();
+                  } catch (err) {
+                    console.error('❌ Quick emergency send failed', err);
+                    toast.error(err.response?.data?.detail || err.message || 'Failed to send emergency email');
+                  } finally {
+                    setSendingEmergencyEmail(false);
+                  }
+                }}
+                title="Quick send to saved emergency contact"
+              >
+                🚀 Send Now
+              </button>
+
+              <button className="emergency-dismiss" onClick={dismissEmergency}>✕</button>
+            </div>
+
+            {/* Confirmation Modal (Inline) */}
+            {showEmergencyEmailConfirm && (
+              <div className="emergency-email-confirm" role="dialog" aria-modal="true">
+                <div className="confirm-panel">
+                  <h4>Send email to emergency contact?</h4>
+                  <p style={{ margin: '6px 0' }}><strong>Detected alert:</strong> {emergencyType}</p>
+                  <label style={{ display: 'block', marginBottom: 8 }}>
+                    Emergency contact email:
+                    <input
+                      type="email"
+                      value={emergencyEmailInput}
+                      onChange={(e) => setEmergencyEmailInput(e.target.value)}
+                      placeholder="Enter contact email"
+                      style={{ width: '100%', padding: '8px', marginTop: '6px' }}
+                    />
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                    <input type="checkbox" checked={autoSendNext} onChange={(e) => setAutoSendNext(e.target.checked)} />
+                    <span style={{ fontSize: 13 }}>Auto-send on future emergencies</span>
+                  </label>
+
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+                    <button className="toolbar-btn" onClick={() => setShowEmergencyEmailConfirm(false)}>Cancel</button>
+                    <button
+                      className="toolbar-btn"
+                      onClick={async () => {
+                        try {
+                          setSendingEmergencyEmail(true);
+                          const convId = activeConversationId || (conversations[0] && conversations[0].conversation_id) || null;
+                          // include recent messages (last 50)
+                          const recent = messages.slice(-50).map(m => ({ type: m.type, text: m.text, timestamp: m.timestamp }));
+
+                          // If user checked auto-send, persist preference to profile
+                          if (autoSendNext) {
+                            try {
+                              await axios.patch(`${API_BASE_URL}/api/auth/me`, { emergencyEmail: emergencyEmailInput, emergencyAutoSend: true });
+                              // Update local currentUser (best-effort)
+                              if (typeof currentUser === 'object') {
+                                const updated = { ...currentUser, emergencyEmail: emergencyEmailInput, emergencyAutoSend: true };
+                                try {
+                                  localStorage.setItem('user', JSON.stringify(updated));
+                                  window.dispatchEvent(new CustomEvent('profileUpdated', { detail: updated }));
+                                } catch (e) {
+                                  console.warn('Failed to persist emergency email to localStorage', e);
+                                }
+                              }
+                            } catch (e) {
+                              console.warn('Failed to save auto-send preference', e?.response?.data || e.message);
+                            }
+                          }
+
+                          const resp = await axios.post(`${API_BASE_URL}/api/notify/emergency`, {
+                            conversation_id: convId,
+                            contact_email: emergencyEmailInput,
+                            alert_message: emergencyType,
+                            messages: recent,
+                          });
+
+                          toast.success(resp.data?.message || 'Emergency email queued');
+                          setShowEmergencyEmailConfirm(false);
+                        } catch (err) {
+                          console.error('❌ Failed to send emergency email', err);
+                          toast.error(err.response?.data?.detail || err.message || 'Failed to send emergency email');
+                        } finally {
+                          setSendingEmergencyEmail(false);
+                        }
+                      }}
+                      disabled={!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emergencyEmailInput) || sendingEmergencyEmail}
+                    >
+                      {sendingEmergencyEmail ? 'Sending...' : 'Send Email'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* ========== FEATURE TOOLBAR (below header) ========== */}
       <div className="feature-toolbar">
-        {/* Mood Tracker */}
-        <div className="toolbar-section mood-section">
-          {showMoodPicker ? (
-            <div className="mood-picker">
-              <span className="mood-label">How are you feeling?</span>
-              <div className="mood-options">
-                {MOODS.map(m => (
-                  <button key={m.label} className="mood-btn" onClick={() => selectMood(m)} title={m.label}
-                    style={{ '--mood-color': m.color }}>
-                    <span className="mood-emoji">{m.emoji}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <button className="mood-display" onClick={() => setShowMoodPicker(true)} title="Change mood">
-              {MOODS.find(m => m.label === currentMood)?.emoji || '😊'} {currentMood}
-            </button>
-          )}
-        </div>
+
 
         {/* Health Tips Carousel */}
         <div className="toolbar-section tips-section">
-          <div className="health-tip-card">
-            <span className="tip-icon">{HEALTH_TIPS[currentTipIndex].icon}</span>
-            <span className="tip-text">{HEALTH_TIPS[currentTipIndex].tip}</span>
-            <span className="tip-category">{HEALTH_TIPS[currentTipIndex].category}</span>
-          </div>
+          {(() => {
+            const activeTipsList = serverTips && serverTips.length ? serverTips.map(t => ({ icon: '💡', tip: t, category: '' })) : HEALTH_TIPS;
+            const active = activeTipsList[currentTipIndex % activeTipsList.length];
+            return null;
+          })()}
         </div>
 
         {/* Action Buttons */}
         <div className="toolbar-section toolbar-actions">
-          <button className="toolbar-btn" onClick={() => setShowBodyMap(true)} title="Symptom Checker">
-            🫁 Body Map
-          </button>
+
           <button className="toolbar-btn" onClick={() => setShowDashboard(!showDashboard)} title="Health Dashboard">
             📊 Dashboard
           </button>
@@ -1571,84 +1831,12 @@ Powered by: Healthcare AI Chatbot v2.0
                 </div>
               </div>
             )}
-            {stats.moodHistory.length > 0 && (
-              <div className="dashboard-mood">
-                <h4>😊 Mood History (Last 7 days)</h4>
-                <div className="mood-timeline">
-                  {stats.moodHistory.map((m, i) => (
-                    <div key={i} className="mood-day">
-                      <span className="mood-day-emoji">{m.emoji}</span>
-                      <span className="mood-day-date">{new Date(m.date).toLocaleDateString('en', { weekday: 'short' })}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+
           </div>
         );
       })()}
 
-      {/* ========== SYMPTOM BODY MAP MODAL ========== */}
-      {showBodyMap && (
-        <div className="body-map-overlay">
-          <div className="body-map-backdrop" onClick={() => { setShowBodyMap(false); setSelectedBodyPart(null); }} />
-          <div className="body-map-panel">
-            <div className="body-map-header">
-              <h3>🫁 Symptom Checker</h3>
-              <p>Click on a body part to select symptoms</p>
-              <button className="body-map-close" onClick={() => { setShowBodyMap(false); setSelectedBodyPart(null); }}>✕</button>
-            </div>
-            <div className="body-map-content">
-              <div className="body-figure">
-                <svg viewBox="0 0 100 100" className="body-svg">
-                  {/* Head */}
-                  <circle cx="50" cy="10" r="7" className={`body-part ${selectedBodyPart === 'head' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('head')} />
-                  {/* Torso */}
-                  <rect x="38" y="20" width="24" height="18" rx="4" className={`body-part ${selectedBodyPart === 'chest' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('chest')} />
-                  {/* Abdomen */}
-                  <rect x="38" y="38" width="24" height="14" rx="4" className={`body-part ${selectedBodyPart === 'abdomen' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('abdomen')} />
-                  {/* Left Arm */}
-                  <rect x="22" y="22" width="14" height="6" rx="3" className={`body-part ${selectedBodyPart === 'leftArm' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('leftArm')} />
-                  <rect x="16" y="28" width="8" height="18" rx="3" className={`body-part ${selectedBodyPart === 'leftArm' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('leftArm')} />
-                  {/* Right Arm */}
-                  <rect x="64" y="22" width="14" height="6" rx="3" className={`body-part ${selectedBodyPart === 'rightArm' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('rightArm')} />
-                  <rect x="76" y="28" width="8" height="18" rx="3" className={`body-part ${selectedBodyPart === 'rightArm' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('rightArm')} />
-                  {/* Back (invisible but clickable) */}
-                  <rect x="40" y="52" width="20" height="8" rx="3" className={`body-part ${selectedBodyPart === 'back' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('back')} />
-                  {/* Left Leg */}
-                  <rect x="38" y="54" width="10" height="24" rx="4" className={`body-part ${selectedBodyPart === 'leftLeg' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('leftLeg')} />
-                  <rect x="36" y="78" width="10" height="14" rx="3" className={`body-part ${selectedBodyPart === 'leftLeg' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('leftLeg')} />
-                  {/* Right Leg */}
-                  <rect x="52" y="54" width="10" height="24" rx="4" className={`body-part ${selectedBodyPart === 'rightLeg' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('rightLeg')} />
-                  <rect x="54" y="78" width="10" height="14" rx="3" className={`body-part ${selectedBodyPart === 'rightLeg' ? 'selected' : ''}`} onClick={() => handleBodyPartClick('rightLeg')} />
-                </svg>
-                {/* Labels */}
-                {Object.entries(BODY_PARTS).map(([key, part]) => (
-                  <button key={key} className={`body-label ${selectedBodyPart === key ? 'selected' : ''}`}
-                    style={{ left: `${part.x}%`, top: `${part.y}%` }}
-                    onClick={() => handleBodyPartClick(key)}>
-                    {part.label}
-                  </button>
-                ))}
-              </div>
 
-              {/* Symptom Selector */}
-              {selectedBodyPart && (
-                <div className="symptom-selector">
-                  <h4>Select symptom for <strong>{BODY_PARTS[selectedBodyPart].label}</strong>:</h4>
-                  <div className="symptom-grid">
-                    {BODY_PARTS[selectedBodyPart].symptoms.map(symptom => (
-                      <button key={symptom} className="symptom-btn" onClick={() => handleSymptomSelect(symptom)}>
-                        {symptom}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Toast notifications are handled by ToastContainer in App */}
 
@@ -1689,32 +1877,44 @@ Powered by: Healthcare AI Chatbot v2.0
         {/* Messages Container */}
         <div className="messages-container" ref={messagesContainerRef}>
           {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`message ${msg.type === 'user' ? 'user-message' : 'bot-message'}`}
-            >
-              <div className="message-content">
-                <p>{msg.text}</p>
-                {msg.isVoice && (
-                  <span className="badge badge-voice">🎤 Voice Input</span>
-                )}
-                {msg.inputType === 'voice' && msg.type === 'bot' && (
-                  <button
-                    className="speak-btn"
-                    onClick={() => speakResponse(msg.text)}
-                    disabled={isSpeaking}
-                    title="Read message aloud"
-                  >
-                    <FiVolume2 /> {isSpeaking ? 'Speaking...' : 'Speak'}
-                  </button>
-                )}
+            <div key={msg.id}>
+              <div
+                className={`message ${msg.type === 'user' ? 'user-message' : 'bot-message'}`}
+              >
+                <div className="message-content">
+                  <p>{msg.text}</p>
+                  {msg.isVoice && (
+                    <span className="badge badge-voice">🎤 Voice Input</span>
+                  )}
+                  {msg.inputType === 'voice' && msg.type === 'bot' && (
+                    <button
+                      className="speak-btn"
+                      onClick={() => speakResponse(msg.text)}
+                      disabled={isSpeaking}
+                      title="Read message aloud"
+                    >
+                      <FiVolume2 /> {isSpeaking ? 'Speaking...' : 'Speak'}
+                    </button>
+                  )}
+                </div>
+                <span className="message-time">
+                  {msg.timestamp.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
               </div>
-              <span className="message-time">
-                {msg.timestamp.toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
+              {/* Show personalized insights after bot message with context */}
+              {msg.type === 'bot' && msg.context && (
+                <PersonalizedInsights
+                  personalizedTips={msg.context.personalizedTips}
+                  geminiTips={msg.context.geminiTips}
+                  wellnessReminder={msg.context.wellnessReminder}
+                  encouragement={msg.context.encouragement}
+                  followUpQuestions={msg.context.followUpQuestions}
+                  quickActions={msg.context.quickActions}
+                />
+              )}
             </div>
           ))}
           {isLoading && (

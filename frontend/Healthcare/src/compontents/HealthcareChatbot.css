@@ -1544,6 +1544,8 @@ body {
   min-height: 0;
   justify-content: flex-start;
   align-items: stretch;
+  /* Constrain height so the chat card uses an internal scrollbar instead of the page scrollbar */
+  max-height: calc(80vh - 220px); /* header + input + padding allowance */
 }
 
 /* Prevent large top-gap by making sure the messages wrapper doesn't center content */
@@ -1822,6 +1824,7 @@ body {
   body {
     padding: 0;
     font-size: var(--font-size-sm);
+    background: #f7faf9;
   }
 
   .chatbot-container {
@@ -1829,48 +1832,50 @@ body {
     min-height: 100vh;
     border-radius: 0;
     border: none;
+    max-width: 100%;
   }
 
   .chatbot-header {
-    padding: 1rem;
+    padding: 0.85rem 1rem;
     border-radius: 0;
   }
 
   .chatbot-header h1 {
-    font-size: var(--font-size-xl);
-    margin-bottom: var(--space-2);
+    font-size: 1.05rem;
+    margin-bottom: 2px;
   }
 
   .chatbot-header .subtitle {
-    font-size: var(--font-size-xs);
+    font-size: 0.75rem;
   }
 
   .messages-container {
-    padding: 1rem;
-    gap: 0.75rem;
+    padding: 0.75rem 0.75rem 0.5rem 0.75rem;
+    gap: 0.6rem;
+    max-height: calc(100vh - 170px); /* ensure visible input */
   }
 
   .message-content {
-    max-width: 95%;
-    padding: 0.75rem;
-    font-size: var(--font-size-sm);
+    max-width: 92%;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.92rem;
   }
 
   .text-input {
-    padding: 0.75rem;
-    font-size: var(--font-size-sm);
+    padding: 0.6rem 0.75rem;
+    font-size: 0.95rem;
     min-height: 44px;
   }
 
   .btn {
-    padding: 0.5rem;
-    font-size: var(--font-size-xs);
-    min-height: 44px;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.9rem;
+    min-height: 40px;
   }
 
   .input-area {
-    padding: 0.75rem;
-    gap: 0.5rem;
+    padding: 12px;
+    gap: 8px;
   }
 
   .input-form {
@@ -1878,37 +1883,38 @@ body {
   }
 
   .sidebar {
-    width: 100%;
-    min-width: unset;
-    border-radius: 8px;
+    display: none; /* hide sidebar on very small screens */
   }
 
-  .chat-grid {
-    grid-template-columns: 1fr;
-  }
+  .chat-grid { grid-template-columns: 1fr; }
 
-  .message {
-    gap: 0.5rem;
-  }
+  .message { gap: 0.5rem; }
 
-  .message-time {
-    font-size: 0.7rem;
-  }
+  .message-time { font-size: 0.72rem; }
 
-  .user-info {
-    width: 100%;
-    justify-content: space-between;
-  }
+  .user-info { width: 100%; justify-content: space-between; }
 
-  .logout-btn {
-    padding: 0.4rem 0.75rem;
-    font-size: 0.8rem;
-  }
+  .logout-btn { padding: 0.4rem 0.75rem; font-size: 0.8rem; }
 
-  .header-toggle {
-    width: 36px;
-    height: 36px;
-  }
+  .header-toggle { width: 36px; height: 36px; }
+
+  /* Floating mic button reposition for small screens */
+  .voice-assistant-fab-wrapper { right: 12px; bottom: 90px; }
+  .voice-assistant-fab-wrapper .fab { transform: scale(0.9); }
+}
+
+/* Tablet / small laptop tweaks */
+@media (min-width: 481px) and (max-width: 900px) {
+  .chatbot-container { margin: 12px; min-height: calc(100vh - 24px); }
+  .messages-container { max-height: calc(100vh - 200px); padding: 1rem; }
+  .sidebar { display: none; }
+  .voice-assistant-fab-wrapper { right: 18px; bottom: 100px; }
+}
+
+/* Large desktop: keep content centered and increase max-width */
+@media (min-width: 1200px) {
+  .chatbot-container { max-width: 1180px; }
+  .messages-inner { max-width: 920px; }
 }
 
 /* Small devices (480px to 640px) */
@@ -3043,64 +3049,7 @@ body {
   flex-shrink: 0;
 }
 
-/* Mood Picker */
-.mood-section { min-width: fit-content; }
 
-.mood-picker {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.mood-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-secondary, #666);
-  white-space: nowrap;
-}
-
-.mood-options {
-  display: flex;
-  gap: 4px;
-}
-
-.mood-btn {
-  background: none;
-  border: 2px solid transparent;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
-
-.mood-btn:hover {
-  border-color: var(--mood-color, #ccc);
-  transform: scale(1.3);
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.mood-emoji { font-size: 20px; }
-
-.mood-display {
-  background: var(--color-bg, #fff);
-  border: 1px solid var(--color-card-border, #ddd);
-  border-radius: 20px;
-  padding: 5px 14px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-
-.mood-display:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
-}
 
 /* Health Tips Carousel */
 .tips-section {
@@ -3318,217 +3267,9 @@ body {
   text-align: right;
 }
 
-/* Mood Timeline */
-.dashboard-mood {
-  margin-top: 16px;
-}
 
-.dashboard-mood h4 {
-  font-size: 14px;
-  margin: 0 0 10px;
-}
 
-.mood-timeline {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-}
-
-.mood-day {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  background: rgba(0, 128, 128, 0.05);
-  border-radius: 10px;
-  min-width: 56px;
-}
-
-.mood-day-emoji { font-size: 24px; }
-
-.mood-day-date {
-  font-size: 10px;
-  color: var(--color-text-secondary, #888);
-  font-weight: 500;
-}
-
-/* ========== 4. SYMPTOM BODY MAP ========== */
-.body-map-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.body-map-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-}
-
-.body-map-panel {
-  position: relative;
-  background: var(--color-card-bg, #fff);
-  border-radius: 20px;
-  max-width: 550px;
-  width: 92%;
-  max-height: 85vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  animation: bodyMapIn 0.3s ease;
-}
-
-@keyframes bodyMapIn {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.body-map-header {
-  padding: 20px 24px 12px;
-  text-align: center;
-  position: relative;
-}
-
-.body-map-header h3 {
-  margin: 0;
-  font-size: 20px;
-}
-
-.body-map-header p {
-  margin: 6px 0 0;
-  color: var(--color-text-secondary, #666);
-  font-size: 13px;
-}
-
-.body-map-close {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: none;
-  border: 1px solid var(--color-card-border, #ddd);
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  cursor: pointer;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.body-map-close:hover {
-  background: #f44336;
-  color: white;
-  border-color: #f44336;
-}
-
-.body-map-content {
-  padding: 12px 24px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.body-figure {
-  position: relative;
-  width: 100%;
-  max-width: 280px;
-  margin: 0 auto;
-  aspect-ratio: 1 / 1.1;
-}
-
-.body-svg {
-  width: 100%;
-  height: 100%;
-}
-
-.body-part {
-  fill: rgba(0, 128, 128, 0.15);
-  stroke: rgba(0, 128, 128, 0.4);
-  stroke-width: 0.5;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.body-part:hover {
-  fill: rgba(0, 128, 128, 0.35);
-  stroke: teal;
-  stroke-width: 1;
-}
-
-.body-part.selected {
-  fill: rgba(0, 128, 128, 0.5);
-  stroke: teal;
-  stroke-width: 1.5;
-  filter: drop-shadow(0 0 6px rgba(0, 128, 128, 0.5));
-}
-
-.body-label {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  font-size: 9px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(0, 128, 128, 0.2);
-  border-radius: 10px;
-  padding: 2px 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 500;
-  color: var(--color-text-primary, #333);
-  white-space: nowrap;
-  z-index: 5;
-}
-
-.body-label:hover, .body-label.selected {
-  background: teal;
-  color: white;
-  border-color: teal;
-  transform: translate(-50%, -50%) scale(1.1);
-}
-
-.symptom-selector {
-  background: rgba(0, 128, 128, 0.04);
-  border: 1px solid rgba(0, 128, 128, 0.12);
-  border-radius: 14px;
-  padding: 16px;
-  animation: tipFadeIn 0.3s ease;
-}
-
-.symptom-selector h4 {
-  margin: 0 0 12px;
-  font-size: 14px;
-  color: var(--color-text-primary, #333);
-}
-
-.symptom-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.symptom-btn {
-  background: white;
-  border: 1px solid rgba(0, 128, 128, 0.2);
-  border-radius: 20px;
-  padding: 8px 16px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--color-text-primary, #333);
-}
-
-.symptom-btn:hover {
-  background: teal;
-  color: white;
-  border-color: teal;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 128, 128, 0.3);
-}
+/* Symptom Body Map CSS removed — feature deprecated. */
 
 /* ========== RESPONSIVE - UNIQUE FEATURES ========== */
 @media (max-width: 768px) {

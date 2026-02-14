@@ -17,8 +17,8 @@ class ProfileUpdateRequest(BaseModel):
     age: int = None
     gender: str = None
     allergies: str = None
-    emergencyContact: str = None
     emergencyEmail: str = None
+    emergencyAutoSend: bool = None  # When true, auto-send emergency emails for this user
 
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
@@ -50,6 +50,14 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Load environment variables from .env if available (development)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent / '.env')
+    logger.info("🔐 Loaded environment variables from .env")
+except Exception as e:
+    logger.info(f"⚠️ python-dotenv not available or .env not found: {e}")
 
 # ===================== 4. INITIALIZE FASTAPI =====================
 app = FastAPI(
@@ -115,6 +123,14 @@ class ChatHistory(BaseModel):
     bot_response: str
     input_type: str
     timestamp: str
+
+
+# --------------------- Gemini tips request model ---------------------
+class GeminiTipsRequest(BaseModel):
+    """Request model for generating tips using Gemini/Generative API"""
+    user_context: Optional[dict] = None
+    messages: Optional[List[dict]] = []
+
 
 # ===================== 8. MODEL MANAGER =====================
 
@@ -238,7 +254,75 @@ except Exception as e:
     logger.error(f"❌ Failed to initialize model manager: {e}")
     model_manager = None
 
+# Import Gemini integration helper (optional - only used if GEMINI_API_KEY present)
+try:
+    from gemini_integration import generate_tips_via_gemini
+    logger.info("🔗 Gemini integration module loaded (optional)")
+except Exception as e:
+    generate_tips_via_gemini = None
+    logger.info("⚠️ Gemini integration module not available: "+str(e))
+
+
+# Local fallback tips generator used when external API is not configured
+def generate_local_tips(user_context: dict, messages: list) -> dict:
+    """Return a dict with keys: tips (list), raw (str), urgency (low|medium|high)"""
+    tips = []
+    mood = None
+    if isinstance(user_context.get('mood'), dict):
+        mood = user_context.get('mood', {}).get('name')
+    else:
+        mood = user_context.get('mood') or user_context.get('mood_state')
+
+    symptoms = user_context.get('symptoms') or []
+
+    if mood and symptoms:
+        for s in symptoms[:3]:
+            tips.append(f"Try basic care for {s}: rest, hydration, and monitor symptoms.")
+    if not tips and mood:
+        ml = (mood or '').lower()
+        if ml.startswith('anx'):
+            tips = ["Try 4-7-8 breathing for 5 minutes.", "Take a short walk to reduce tension."]
+        elif ml.startswith('sad'):
+            tips = ["Get morning sunlight for 10 minutes.", "Reach out to a friend for social support."]
+        elif ml.startswith('tired'):
+            tips = ["Short naps (20-30 min) can help.", "Avoid caffeine after 2 PM."]
+        else:
+            tips = ["Stay hydrated, eat balanced meals, and rest as needed."]
+    if not tips:
+        tips = ["Stay hydrated.", "Get enough sleep.", "If symptoms worsen, see a doctor."]
+
+    return {"tips": tips[:5], "raw": "", "urgency": "low"}
+
 # ===================== 9. AUDIO PROCESSOR =====================
+
+# --------------------- Gemini Tips Generation Endpoint ---------------------
+@app.post("/api/generate/tips")
+async def generate_tips_endpoint(payload: GeminiTipsRequest):
+    """Generate personalized healthcare tips using a generative AI (Gemini or other).
+
+    This forwards context and recent messages to the configured external API. If
+    the GEMINI_API_KEY env var is not set, the endpoint will return local tips.
+    """
+    user_context = payload.user_context or {}
+    messages = payload.messages or []
+
+    try:
+        if generate_tips_via_gemini is not None:
+            result = await generate_tips_via_gemini(user_context=user_context, messages=messages)
+            return JSONResponse({"status": "success", "tips": result.get("tips", []), "raw": result.get("raw", ""), "urgency": result.get("urgency", "low")})
+        else:
+            # Local fallback
+            local = generate_local_tips(user_context, messages)
+            return JSONResponse({"status": "success", "tips": local.get("tips", []), "raw": local.get("raw", ""), "urgency": local.get("urgency", "low")})
+
+    except Exception as e:
+        logger.error(f"❌ Error generating tips: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
 
 class AudioProcessor:
     """Handles audio conversion and speech recognition"""
@@ -694,7 +778,7 @@ async def update_profile(
         raise HTTPException(status_code=401, detail="Not authenticated")
     # Only allow editing specific fields
     update_fields = {}
-    for field in ['full_name', 'age', 'gender', 'allergies', 'emergencyContact', 'emergencyEmail']:
+    for field in ['full_name', 'age', 'gender', 'allergies', 'emergencyEmail', 'emergencyAutoSend']:
         value = getattr(data, field, None)
         if value is not None:
             update_fields[field] = value
@@ -777,6 +861,196 @@ async def health_check():
         "torch_version": torch.__version__,
         "cuda_available": torch.cuda.is_available()
     }
+
+
+# --------------------- Emergency Notification Endpoint ---------------------
+class EmergencyNotifyRequest(BaseModel):
+    conversation_id: Optional[str] = None
+    contact_email: str
+    alert_message: Optional[str] = None
+    messages: Optional[List[dict]] = []  # Optional: include messages payload directly
+
+
+@app.post('/api/notify/emergency')
+async def notify_emergency(
+    payload: EmergencyNotifyRequest,
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user)
+):
+    """Send an emergency notification email to the provided contact.
+
+    The endpoint will attempt to fetch the conversation messages from the DB by
+    conversation_id for the current user. If messages are provided in the request
+    body they will be used as a fallback.
+    """
+    if not current_user:
+        raise HTTPException(status_code=401, detail='Not authenticated')
+
+    # Use provided contact email, otherwise fall back to the user's configured emergency email
+    contact_email = (payload.contact_email or
+                     current_user.get('emergencyEmail') or
+                     current_user.get('emergency_email') or
+                     None)
+    alert_message = payload.alert_message or 'Emergency alert from your contact'
+
+    if not contact_email:
+        logger.error('❌ No emergency contact email provided or configured for user')
+        raise HTTPException(status_code=400, detail='No emergency contact email provided or configured on your profile')
+
+    # Attempt to fetch messages from DB if conversation_id provided
+    conversation_msgs = []
+    try:
+        if payload.conversation_id:
+            cursor = chat_logger.chat_logs.find({
+                "user_id": current_user.get('id') or current_user.get('user_id'),
+                "conversation_id": payload.conversation_id
+            }).sort("timestamp", 1)
+            conversation_msgs = [ { 'role': d.get('role') or d.get('type', ''), 'text': d.get('content') or d.get('text', ''), 'timestamp': d.get('timestamp') } for d in cursor ]
+
+        # If no DB messages found, use provided messages
+        if not conversation_msgs and payload.messages:
+            conversation_msgs = payload.messages
+
+        # Fallback to last 20 in-memory logs (if any)
+        if not conversation_msgs and hasattr(chat_logger, 'chat_logs'):
+            recent = chat_logger.chat_logs.find({ 'user_id': current_user.get('id') or current_user.get('user_id') }).sort('timestamp', -1).limit(20)
+            conversation_msgs = [ { 'role': d.get('role'), 'text': d.get('content'), 'timestamp': d.get('timestamp') } for d in recent ]
+
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to fetch conversation messages: {e}")
+
+    # Compose email
+    user_name = current_user.get('username') or current_user.get('email') or 'Unknown'
+    subject = f"EMERGENCY ALERT - {user_name}: {alert_message[:80]}"
+
+    text_lines = []
+    text_lines.append(f"Emergency alert for user: {user_name}")
+    text_lines.append(f"Alert: {alert_message}")
+    text_lines.append(f"Conversation ID: {payload.conversation_id}")
+    text_lines.append("")
+    text_lines.append("Recent messages:")
+    for m in conversation_msgs[-50:]:
+        role = m.get('role', 'user')
+        txt = m.get('text') or m.get('content') or ''
+        ts = m.get('timestamp') or ''
+        text_lines.append(f"[{ts}] {role}: {txt}")
+
+    body_text = "\n".join(text_lines)
+    body_html = "<pre>" + "\n".join([line.replace('<','&lt;').replace('>','&gt;') for line in text_lines]) + "</pre>"
+
+    # Send email in background (validate SMTP config first)
+    try:
+        from email_utils import send_emergency_email, is_email_configured, EMAIL_BACKEND
+    except Exception as e:
+        logger.error(f"❌ Email utility not available: {e}")
+        raise HTTPException(status_code=500, detail='Email sending not configured on server')
+
+    # Validate email configuration (supports different backends)
+    if not is_email_configured():
+        # Log detailed diagnostic info to help troubleshooting
+        try:
+            from email_utils import EMAIL_BACKEND, FASTAPI_MAIL_SERVER, FASTAPI_MAIL_USERNAME, SMTP_HOST, SMTP_USER
+            logger.error(
+                "❌ Email configuration missing. "
+                f"EMAIL_BACKEND={EMAIL_BACKEND}, "
+                f"FASTAPI_MAIL_SERVER_set={bool(FASTAPI_MAIL_SERVER)}, "
+                f"FASTAPI_MAIL_USERNAME_set={bool(FASTAPI_MAIL_USERNAME)}, "
+                f"SMTP_HOST_set={bool(SMTP_HOST)}, "
+                f"SMTP_USER_set={bool(SMTP_USER)}"
+            )
+        except Exception:
+            logger.error('❌ Email configuration missing and email_utils not fully available')
+        raise HTTPException(status_code=503, detail='Email configuration missing (check EMAIL_BACKEND and provider settings)')
+
+    def _send():
+        try:
+            send_emergency_email(contact_email, subject, body_text, body_html)
+        except Exception as e:
+            # Log but don't raise to avoid crashing the background worker
+            logger.exception(f"❌ Failed to send emergency email: {e}")
+
+    background_tasks.add_task(_send)
+
+    logger.info(f"📫 Emergency email queued to {contact_email} for user {user_name}")
+
+    return JSONResponse({ 'status': 'success', 'message': f'Notification queued to {contact_email}' })
+
+
+# --------------------- Debug: Test email send endpoint ---------------------
+@app.post('/api/notify/test')
+async def notify_test(
+    payload: Optional[dict] = Body(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """Send a test emergency email synchronously and return the result.
+
+    Payload (optional): { "contact_email": "someone@example.com" }
+    If no contact_email provided, falls back to the authenticated user's emergencyEmail.
+    """
+    contact_email = None
+    if payload and isinstance(payload, dict):
+        contact_email = payload.get('contact_email')
+
+    if not contact_email:
+        if not current_user:
+            raise HTTPException(status_code=400, detail='No contact email provided and not authenticated')
+        contact_email = current_user.get('emergencyEmail') or current_user.get('emergency_email')
+
+    if not contact_email:
+        raise HTTPException(status_code=400, detail='No contact email provided or configured on your profile')
+
+    try:
+        from email_utils import send_emergency_email, is_email_configured
+    except Exception as e:
+        logger.error(f"❌ Email utilities unavailable: {e}")
+        raise HTTPException(status_code=500, detail='Email sending not configured on server')
+
+    if not is_email_configured():
+        try:
+            from email_utils import EMAIL_BACKEND, FASTAPI_MAIL_SERVER, FASTAPI_MAIL_USERNAME, SMTP_HOST, SMTP_USER
+            logger.error(
+                "❌ Email backend not configured. "
+                f"EMAIL_BACKEND={EMAIL_BACKEND}, "
+                f"FASTAPI_MAIL_SERVER_set={bool(FASTAPI_MAIL_SERVER)}, "
+                f"FASTAPI_MAIL_USERNAME_set={bool(FASTAPI_MAIL_USERNAME)}, "
+                f"SMTP_HOST_set={bool(SMTP_HOST)}, "
+                f"SMTP_USER_set={bool(SMTP_USER)}"
+            )
+        except Exception:
+            logger.error('❌ Email backend not configured and email_utils unavailable')
+        raise HTTPException(status_code=503, detail='Email backend not configured (check EMAIL_BACKEND and provider settings)')
+
+    # Compose a minimal test message
+    subject = f"Test Emergency Notification - {current_user.get('username') if current_user else 'Anonymous'}"
+    body_text = "This is a test emergency notification from Healthcare Chatbot. If you received this, email sending is working."
+    body_html = "<p>This is a <strong>test</strong> emergency notification from Healthcare Chatbot.</p>"
+
+    try:
+        # Use direct call so errors are returned to client for quick debugging
+        send_emergency_email(contact_email, subject, body_text, body_html)
+        logger.info(f"✅ Test email sent to {contact_email}")
+        return JSONResponse({'status': 'success', 'message': f'Test email sent to {contact_email}'})
+    except Exception as e:
+        logger.exception(f"❌ Test email failed: {e}")
+        raise HTTPException(status_code=500, detail=f'Test email failed: {str(e)}')
+
+
+@app.get('/api/notify/config')
+async def notify_config():
+    """Return whether email backend is configured and basic info (no secrets)."""
+    try:
+        from email_utils import is_email_configured, EMAIL_BACKEND, FASTAPI_MAIL_SERVER, SMTP_HOST
+        configured = is_email_configured()
+        return JSONResponse({
+            'status': 'success',
+            'configured': configured,
+            'email_backend': EMAIL_BACKEND,
+            'fastapi_mail_server': bool(FASTAPI_MAIL_SERVER),
+            'smtp_host': bool(SMTP_HOST)
+        })
+    except Exception as e:
+        logger.error(f"❌ Failed to determine email config: {e}")
+        raise HTTPException(status_code=500, detail='Failed to determine email configuration')
 
 @app.get("/api/stats")
 async def get_stats():
@@ -1333,15 +1607,53 @@ async def websocket_chat(websocket: WebSocket):
     """
     await websocket.accept()
     logger.info("🔌 WebSocket connection established")
+    tips_subscribed = False
+    last_user_context = None
     
+    # Using module-level `generate_local_tips` for local fallback (defined above)
+    # This avoids duplication and keeps behavior consistent across endpoints.
+
     try:
         while True:
             data = await websocket.receive_json()
-            
+
+            # Client requests tips once or as an ongoing subscription
+            if data.get('type') in ('tips_request', 'tips_subscribe'):
+                user_context = data.get('user_context', {}) or {}
+                messages_list = data.get('messages', []) or []
+                last_user_context = user_context or last_user_context
+
+                # Mark subscription flag if requested
+                if data.get('type') == 'tips_subscribe':
+                    tips_subscribed = True
+
+                try:
+                    if generate_tips_via_gemini is not None:
+                        result = await generate_tips_via_gemini(user_context=user_context, messages=messages_list)
+                        tips = result.get('tips', [])
+                        urgency = result.get('urgency', 'low')
+                    else:
+                        local = generate_local_tips(user_context, messages_list)
+                        tips = local.get('tips', [])
+                        urgency = local.get('urgency', 'low')
+
+                    await websocket.send_json({
+                        'status': 'success',
+                        'type': 'tips',
+                        'tips': tips,
+                        'urgency': urgency,
+                        'timestamp': datetime.now().isoformat()
+                    })
+                except Exception as e:
+                    logger.error(f"Error generating tips: {e}")
+                    await websocket.send_json({ 'status': 'error', 'message': str(e) })
+
+                continue
+
             if data.get("type") == "message":
                 input_type = data.get("input_type", "text")
                 start_time = time.time()
-                
+
                 if input_type == "text":
                     text = data.get("data", "").strip()
                     if not text:
@@ -1350,12 +1662,12 @@ async def websocket_chat(websocket: WebSocket):
                             "message": "Empty input"
                         })
                         continue
-                    
+
                     try:
                         response, _ = model_manager.generate_response(text)
                         response_time = time.time() - start_time
                         statistics.record_request("text", response_time)
-                        
+
                         await websocket.send_json({
                             "status": "success",
                             "input": text,
@@ -1364,6 +1676,7 @@ async def websocket_chat(websocket: WebSocket):
                             "timestamp": datetime.now().isoformat(),
                             "processing_time": response_time
                         })
+
                     except Exception as e:
                         await websocket.send_json({
                             "status": "error",
@@ -1376,12 +1689,12 @@ async def websocket_chat(websocket: WebSocket):
                     try:
                         audio_bytes = base64.b64decode(audio_data)
                         transcribed, confidence = audio_processor.transcribe_audio(audio_bytes)
-                        
+
                         if transcribed:
                             response, _ = model_manager.generate_response(transcribed)
                             response_time = time.time() - start_time
                             statistics.record_request("voice", response_time)
-                            
+
                             await websocket.send_json({
                                 "status": "success",
                                 "input": transcribed,
@@ -1391,6 +1704,7 @@ async def websocket_chat(websocket: WebSocket):
                                 "timestamp": datetime.now().isoformat(),
                                 "processing_time": response_time
                             })
+
                         else:
                             await websocket.send_json({
                                 "status": "error",

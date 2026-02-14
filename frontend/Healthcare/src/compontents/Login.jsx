@@ -51,9 +51,10 @@ const Login = ({ onLoginSuccess, onSwitchToSignup }) => {
   return (
     <div className={`auth-container ${isAnimating ? 'active' : ''}`}>
       <div className="auth-card">
-        <div className="auth-header">
-          <h1 className="auth-title">Welcome back</h1>
-          <p className="auth-subtitle">Sign in to continue</p>
+        <div className="auth-hero">
+          <div className="hero-icon">🩺</div>
+          <h2 className="hero-title">Healthcare Chatbot</h2>
+          <p className="hero-sub">Secure, private health advice — powered by AI</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form" aria-label="Login form">
@@ -90,7 +91,7 @@ const Login = ({ onLoginSuccess, onSwitchToSignup }) => {
         </form>
 
         <div className="auth-footer">
-          <p className="auth-switch-text">Don't have an account? <button type="button" className="link-button" onClick={onSwitchToSignup} disabled={isLoading}>Sign up</button></p>
+          <p className="auth-switch-text">Don't have an account? <button type="button" className="auth-switch-button" onClick={onSwitchToSignup} disabled={isLoading}>Sign up</button></p>
         </div>
       </div>
     </div>

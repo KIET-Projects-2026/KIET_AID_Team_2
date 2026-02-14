@@ -106,3 +106,29 @@
     justify-content: center;
   }
 }
+
+/* Emergency email confirmation modal */
+.emergency-email-confirm {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2500;
+}
+
+.emergency-email-confirm .confirm-panel {
+  background: var(--color-card-bg, #fff);
+  border: 1px solid var(--color-card-border, #ddd);
+  border-radius: 12px;
+  padding: 18px;
+  width: 420px;
+  max-width: 92%;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+}
+
+.emergency-email-confirm h4 { margin: 0 0 8px; }
+
+@media (max-width: 480px) {
+  .emergency-email-confirm .confirm-panel { padding: 12px; width: 92%; }
+}

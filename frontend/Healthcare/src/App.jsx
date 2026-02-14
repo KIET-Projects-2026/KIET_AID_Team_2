@@ -39,7 +39,25 @@ function App() {
     }
     setIsLoading(false)
   }, [])
+  // Keep `currentUser` in sync when other components update the profile
+  useEffect(() => {
+    const handler = (e) => {
+      if (e && e.detail) setCurrentUser(e.detail);
+    };
+    window.addEventListener('profileUpdated', handler);
 
+    // listen for requests from child components to open/close the Profile view
+    const openProfileHandler = () => setShowProfile(true);
+    const closeProfileHandler = () => setShowProfile(false);
+    window.addEventListener('openProfile', openProfileHandler);
+    window.addEventListener('closeProfile', closeProfileHandler);
+
+    return () => {
+      window.removeEventListener('profileUpdated', handler);
+      window.removeEventListener('openProfile', openProfileHandler);
+      window.removeEventListener('closeProfile', closeProfileHandler);
+    };
+  }, []);
   const handleLoginSuccess = (data) => {
     setCurrentUser(data.user)
     setIsAuthenticated(true)
@@ -127,36 +145,17 @@ function App() {
         )
       ) : (
         <>
-          <div style={{ position: 'fixed', top: 20, right: 30, zIndex: 1000 }}>
-            <button
-              onClick={() => setShowProfile((prev) => !prev)}
-              style={{
-                background: 'white',
-                border: '1px solid #14b8a6',
-                borderRadius: '50%',
-                width: 44,
-                height: 44,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(20,184,166,0.08)',
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-              title="View Profile"
-            >
-              <FiUser size={22} color="#14b8a6" />
-            </button>
-          </div>
+         
           {showProfile ? (
-            <Profile />
+            <>
+              <Profile onLogout={handleLogout} />
+            </>
           ) : (
             <HealthcareChatbot 
               currentUser={currentUser}
               onLogout={handleLogout}
             />
           )}
-          <Footer />
         </>
       )}
     </>

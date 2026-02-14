@@ -1,7 +1,7 @@
 import React from 'react';
 import './HealthDashboard.css';
 
-const HealthDashboard = ({ messages, moodHistory, onClose }) => {
+const HealthDashboard = ({ messages, onClose }) => {
   const getDashboardStats = () => {
     const totalMessages = messages.length;
     const userMessages = messages.filter(m => m.type === 'user').length;
@@ -84,22 +84,7 @@ const HealthDashboard = ({ messages, moodHistory, onClose }) => {
         </div>
       </div>
 
-      {/* Mood History */}
-      <div className="dashboard-mood">
-        <h4>Mood History (Last 7 Days)</h4>
-        <div className="mood-timeline">
-          {moodHistory && moodHistory.length > 0 ? (
-            moodHistory.map((entry, idx) => (
-              <div key={idx} className="mood-day">
-                <div className="mood-day-emoji">{entry.emoji}</div>
-                <div className="mood-day-date">{entry.date}</div>
-              </div>
-            ))
-          ) : (
-            <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>No mood data yet</p>
-          )}
-        </div>
-      </div>
+
     </div>
   );
 };

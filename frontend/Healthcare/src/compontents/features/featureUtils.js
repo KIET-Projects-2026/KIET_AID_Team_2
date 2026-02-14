@@ -34,16 +34,7 @@ export const HEALTH_TIPS = [
   { text: 'Avoid smoking and secondhand smoke exposure.', emoji: '🚭', category: 'Lifestyle' },
 ];
 
-export const BODY_PARTS = {
-  head: { label: 'Head', symptoms: ['Headache', 'Dizziness', 'Vision blur', 'Hearing loss'] },
-  chest: { label: 'Chest', symptoms: ['Chest pain', 'Difficulty breathing', 'Heart palpitations'] },
-  abdomen: { label: 'Abdomen', symptoms: ['Abdominal pain', 'Nausea', 'Indigestion', 'Diarrhea'] },
-  leftArm: { label: 'Left Arm', symptoms: ['Arm pain', 'Numbness', 'Weakness', 'Tingling'] },
-  rightArm: { label: 'Right Arm', symptoms: ['Arm pain', 'Numbness', 'Weakness', 'Tingling'] },
-  back: { label: 'Back', symptoms: ['Back pain', 'Stiffness', 'Muscle tension'] },
-  leftLeg: { label: 'Left Leg', symptoms: ['Leg pain', 'Swelling', 'Weakness', 'Cramping'] },
-  rightLeg: { label: 'Right Leg', symptoms: ['Leg pain', 'Swelling', 'Weakness', 'Cramping'] },
-};
+
 
 /**
  * Check if text contains emergency keywords

@@ -143,42 +143,7 @@
   text-align: right;
 }
 
-/* Mood Timeline */
-.dashboard-mood {
-  margin-top: 16px;
-}
 
-.dashboard-mood h4 {
-  font-size: 14px;
-  margin: 0 0 10px;
-}
-
-.mood-timeline {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-}
-
-.mood-day {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  background: rgba(0, 128, 128, 0.05);
-  border-radius: 10px;
-  min-width: 56px;
-}
-
-.mood-day-emoji {
-  font-size: 24px;
-}
-
-.mood-day-date {
-  font-size: 10px;
-  color: var(--color-text-secondary, #888);
-  font-weight: 500;
-}
 
 @media (max-width: 768px) {
   .dashboard-grid {

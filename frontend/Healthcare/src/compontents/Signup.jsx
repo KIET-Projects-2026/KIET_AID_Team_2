@@ -25,6 +25,8 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  // new: wizard step state (0..3)
+  const [step, setStep] = useState(0);
 
   useEffect(() => { setTimeout(() => setIsAnimating(true), 80); }, []);
 
@@ -43,6 +45,22 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
   const [usernameAvailable, setUsernameAvailable] = useState(null);
   const [usernameChecking, setUsernameChecking] = useState(false);
   const usernameCheckRef = React.useRef(null);
+
+  const handleNext = () => {
+    if (validateStep(step)) setStep(s => Math.min(3, s + 1));
+  };
+  const handleBack = () => setStep(s => Math.max(0, s - 1));
+
+  // allow clicking the stepper; forward moves are guarded by per-step validation
+  const handleStepClick = (index) => {
+    if (index === step) return;
+    if (index < step) { setStep(index); return; }
+    // moving forward: validate each intermediate step first
+    for (let s = step; s < index; s++) {
+      if (!validateStep(s)) { toast.error('Please complete the current step before proceeding'); return; }
+    }
+    setStep(index);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -74,6 +92,29 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
     if (!formData.age || isNaN(formData.age) || formData.age < 0 || formData.age > 120) { toast.error('Valid age is required'); return false; }
     if (!formData.gender) { toast.error('Gender is required'); return false; }
     if (!formData.emergencyContact) { toast.error('Emergency contact is required'); return false; }
+    return true;
+  };
+
+  // per-step validation for wizard
+  const validateStep = (s) => {
+    if (s === 0) {
+      if (!formData.username || formData.username.length < 3) { toast.error('Please choose a username (min 3 chars)'); return false; }
+      if (usernameAvailable === false) { toast.error('Username already taken'); return false; }
+      if (!formData.password || formData.password.length < 6) { toast.error('Enter a password (min 6 chars)'); return false; }
+      if (formData.password !== formData.confirmPassword) { toast.error('Passwords must match'); return false; }
+      return true;
+    }
+    if (s === 1) {
+      if (!formData.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.email)) { toast.error('Please enter a valid email'); return false; }
+      if (!formData.phone || !/^\d{10,15}$/.test(formData.phone)) { toast.error('Please enter a valid phone number'); return false; }
+      if (!formData.age || isNaN(formData.age) || formData.age < 0 || formData.age > 120) { toast.error('Please enter a valid age'); return false; }
+      return true;
+    }
+    if (s === 2) {
+      if (!formData.emergencyContact) { toast.error('Please provide an emergency contact'); return false; }
+      if (!formData.emergencyEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.emergencyEmail)) { toast.error('Please provide a valid emergency email'); return false; }
+      return true;
+    }
     return true;
   };
 
@@ -119,120 +160,180 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
   return (
     <div className={`auth-container ${isAnimating ? 'active' : ''}`}>
       <div className="auth-card">
-        <div className="auth-header">
-          <h1 className="auth-title">Create Account</h1>
-          <p className="auth-subtitle">Join us for personalized health assistance</p>
+        <div className="auth-hero">
+          <div className="hero-icon">🩺</div>
+          <h2 className="hero-title">Create Account</h2>
+          <p className="hero-sub">Join us for personalized health assistance</p>
         </div>
 
 
-        <form onSubmit={handleSubmit} className="auth-form" aria-label="Signup form">
-          <div className="form-group">
-            <label className="form-label" htmlFor="signup-username"><FiUser className="label-icon" />Username <span style={{color: 'red'}}>*</span></label>
-            <input id="signup-username" type="text" name="username" placeholder="Enter your username" value={formData.username} onChange={handleChange} className="form-input" disabled={isLoading} minLength="3" required />
-            <div className="helper-text">
-              {usernameChecking && <small>Checking availability...</small>}
-              {!usernameChecking && usernameAvailable === false && <small style={{color: '#ef4444'}}>Username is already taken</small>}
-              {!usernameChecking && usernameAvailable === true && <small style={{color: '#10b981'}}>Username is available</small>}
-            </div>
-          </div>
-          <div className="form-group">
-            <label className="form-label" htmlFor="signup-emergency-email">Emergency Email <span style={{color: 'red'}}>*</span></label>
-            <input id="signup-emergency-email" type="email" name="emergencyEmail" placeholder="Enter emergency email" value={formData.emergencyEmail} onChange={handleChange} className="form-input" disabled={isLoading} required />
-          </div>
+        {/* Stepper */}
+        <div className="signup-stepper" role="tablist" aria-label="Signup steps">
+          <div role="tab" tabIndex={0} onClick={() => handleStepClick(0)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleStepClick(0); }} className={`step ${step === 0 ? 'active' : step > 0 ? 'completed' : ''}`}>Account</div>
+          <div role="tab" tabIndex={0} onClick={() => handleStepClick(1)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleStepClick(1); }} className={`step ${step === 1 ? 'active' : step > 1 ? 'completed' : ''}`}>Personal</div>
+          <div role="tab" tabIndex={0} onClick={() => handleStepClick(2)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleStepClick(2); }} className={`step ${step === 2 ? 'active' : step > 2 ? 'completed' : ''}`}>Medical</div>
+          <div role="tab" tabIndex={0} onClick={() => handleStepClick(3)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleStepClick(3); }} className={`step ${step === 3 ? 'active' : ''}`}>Review</div>
+        </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="signup-fullname"><FiUser className="label-icon" />Full Name (Optional)</label>
-            <input id="signup-fullname" type="text" name="full_name" placeholder="Your full name" value={formData.full_name} onChange={handleChange} className="form-input" disabled={isLoading} />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="signup-email">Email</label>
-            <input id="signup-email" type="email" name="email" placeholder="Enter your email" value={formData.email} onChange={handleChange} className="form-input" disabled={isLoading} required />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="signup-phone">Phone Number</label>
-            <input id="signup-phone" type="tel" name="phone" placeholder="Enter your phone number" value={formData.phone} onChange={handleChange} className="form-input" disabled={isLoading} required pattern="\d{10,15}" />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="signup-age">Age</label>
-            <input id="signup-age" type="number" name="age" placeholder="Enter your age" value={formData.age} onChange={handleChange} className="form-input" disabled={isLoading} min="0" max="120" required />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="signup-gender">Gender</label>
-            <select id="signup-gender" name="gender" value={formData.gender} onChange={handleChange} className="form-input" disabled={isLoading} required>
-              <option value="">Select gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-              <option value="prefer_not_to_say">Prefer not to say</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="signup-allergies">Allergies (Medical Conditions)</label>
-            <input id="signup-allergies" type="text" name="allergies" placeholder="List allergies or medical conditions" value={formData.allergies} onChange={handleChange} className="form-input" disabled={isLoading} />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="signup-emergency">Emergency Contact</label>
-            <input id="signup-emergency" type="text" name="emergencyContact" placeholder="Emergency contact details" value={formData.emergencyContact} onChange={handleChange} className="form-input" disabled={isLoading} required />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="signup-password"><FiLock className="label-icon" />Password</label>
-            <div className="password-input-wrapper">
-              <input
-                id="signup-password"
-                type="password"
-                name="password"
-                placeholder="Create a strong password"
-                value={formData.password}
-                onChange={handleChange}
-                className="form-input"
-                disabled={isLoading}
-                minLength="6"
-                required
-                style={{ paddingRight: '0.5rem' }}
-              />
-            </div>
-            {formData.password && (
-              <div className="password-strength">
-                <div className="password-strength-bar">
-                  <div className="password-strength-fill" style={{ width: `${passwordStrength}%`, backgroundColor: getPasswordStrengthColor() }}></div>
+        <form onSubmit={handleSubmit} className="auth-form" aria-label="Signup wizard form">
+          {step === 0 && (
+            <>
+              <div className="form-group">
+                <label className="form-label" htmlFor="signup-username"><FiUser className="label-icon" />Username <span style={{color: 'red'}}>*</span></label>
+                <input id="signup-username" type="text" name="username" placeholder="Enter your username" value={formData.username} onChange={handleChange} className="form-input" disabled={isLoading} minLength="3" required />
+                <div className="helper-text">
+                  {usernameChecking && <small>Checking availability...</small>}
+                  {!usernameChecking && usernameAvailable === false && <small style={{color: '#ef4444'}}>Username is already taken</small>}
+                  {!usernameChecking && usernameAvailable === true && <small style={{color: '#10b981'}}>Username is available</small>}
                 </div>
-                <span className="password-strength-text" style={{ color: getPasswordStrengthColor() }}>{getPasswordStrengthText()}</span>
               </div>
-            )}
-          </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="signup-confirm"><FiLock className="label-icon" />Confirm Password</label>
-            <div className="password-input-wrapper">
-              <input
-                id="signup-confirm"
-                type="password"
-                name="confirmPassword"
-                placeholder="Confirm your password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className="form-input"
-                disabled={isLoading}
-                minLength="6"
-                required
-                style={{ paddingRight: '0.5rem' }}
-              />
-            </div>
-          </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="signup-password"><FiLock className="label-icon" />Password</label>
+                <div className="password-input-wrapper">
+                  <input
+                    id="signup-password"
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    placeholder="Create a strong password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="form-input"
+                    disabled={isLoading}
+                    minLength="6"
+                    required
+                  />
+                  <button type="button" className="password-toggle" onClick={() => setShowPassword(s => !s)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                    {showPassword ? <FiEyeOff /> : <FiEye />}
+                  </button>
+                </div>
+                {formData.password && (
+                  <div className="password-strength">
+                    <div className="password-strength-bar">
+                      <div className="password-strength-fill" style={{ width: `${passwordStrength}%`, backgroundColor: getPasswordStrengthColor() }}></div>
+                    </div>
+                    <span className="password-strength-text" style={{ color: getPasswordStrengthColor() }}>{getPasswordStrengthText()}</span>
+                  </div>
+                )}
+              </div>
 
-          <button type="submit" className={`auth-button ${isLoading ? 'loading' : ''}`} disabled={isLoading} aria-busy={isLoading}>{isLoading ? (<><div className="spinner" />Creating account...</>) : (<><FiUserPlus />Create account</>)}</button>
+              <div className="form-group">
+                <label className="form-label" htmlFor="signup-confirm-password">Confirm Password</label>
+                <div className="password-input-wrapper">
+                  <input
+                    id="signup-confirm-password"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    name="confirmPassword"
+                    placeholder="Confirm your password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className="form-input"
+                    disabled={isLoading}
+                    minLength="6"
+                    required
+                  />
+                  <button type="button" className="password-toggle" onClick={() => setShowConfirmPassword(s => !s)} aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}>
+                    {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-actions step-actions">
+                <div />
+                <button type="button" className="btn" onClick={handleNext}>Next →</button>
+              </div>
+            </>
+          )}
+
+          {step === 1 && (
+            <>
+              <div className="form-group">
+                <label className="form-label" htmlFor="signup-fullname"><FiUser className="label-icon" />Full Name (Optional)</label>
+                <input id="signup-fullname" type="text" name="full_name" placeholder="Your full name" value={formData.full_name} onChange={handleChange} className="form-input" disabled={isLoading} />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="signup-email">Email</label>
+                <input id="signup-email" type="email" name="email" placeholder="Enter your email" value={formData.email} onChange={handleChange} className="form-input" disabled={isLoading} required />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="signup-phone">Phone Number</label>
+                <input id="signup-phone" type="tel" name="phone" placeholder="Enter your phone number" value={formData.phone} onChange={handleChange} className="form-input" disabled={isLoading} required pattern="\d{10,15}" />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="signup-age">Age</label>
+                <input id="signup-age" type="number" name="age" placeholder="Enter your age" value={formData.age} onChange={handleChange} className="form-input" disabled={isLoading} min="0" max="120" required />
+              </div>
+
+              <div className="form-actions step-actions">
+                <button type="button" className="btn btn-outline" onClick={handleBack}>← Back</button>
+                <button type="button" className="btn" onClick={handleNext}>Next →</button>
+              </div>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+              <div className="form-group">
+                <label className="form-label" htmlFor="signup-gender">Gender</label>
+                <select id="signup-gender" name="gender" value={formData.gender} onChange={handleChange} className="form-input" disabled={isLoading} required>
+                  <option value="">Select gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="signup-allergies">Allergies (Medical Conditions)</label>
+                <input id="signup-allergies" type="text" name="allergies" placeholder="List allergies or medical conditions" value={formData.allergies} onChange={handleChange} className="form-input" disabled={isLoading} />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="signup-emergency">Emergency Contact</label>
+                <input id="signup-emergency" type="text" name="emergencyContact" placeholder="Emergency contact details" value={formData.emergencyContact} onChange={handleChange} className="form-input" disabled={isLoading} required />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="signup-emergency-email">Emergency Email <span style={{color: 'red'}}>*</span></label>
+                <input id="signup-emergency-email" type="email" name="emergencyEmail" placeholder="Enter emergency email" value={formData.emergencyEmail} onChange={handleChange} className="form-input" disabled={isLoading} required />
+              </div>
+
+              <div className="form-actions step-actions">
+                <button type="button" className="btn btn-outline" onClick={handleBack}>← Back</button>
+                <button type="button" className="btn" onClick={handleNext}>Next →</button>
+              </div>
+            </>
+          )}
+
+          {step === 3 && (
+            <>
+              <div className="form-group">
+                <h3>Review your details</h3>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12}}>
+                  <div><strong>Username</strong><div>{formData.username}</div></div>
+                  <div><strong>Full name</strong><div>{formData.full_name || '-'}</div></div>
+                  <div><strong>Email</strong><div>{formData.email}</div></div>
+                  <div><strong>Phone</strong><div>{formData.phone}</div></div>
+                  <div><strong>Age</strong><div>{formData.age}</div></div>
+                  <div><strong>Gender</strong><div>{formData.gender}</div></div>
+                  <div style={{gridColumn: '1 / -1'}}><strong>Allergies</strong><div>{formData.allergies || '-'}</div></div>
+                </div>
+              </div>
+
+              <div className="form-actions step-actions">
+                <button type="button" className="btn btn-outline" onClick={handleBack}>← Back</button>
+                <button type="submit" className={`auth-button ${isLoading ? 'loading' : ''}`} disabled={isLoading} aria-busy={isLoading}>{isLoading ? (<><div className="spinner" />Creating account...</>) : (<><FiUserPlus />Create account</>)}</button>
+              </div>
+            </>
+          )}
+          <div className="auth-footer">
+            <p className="auth-switch-text">Already have an account? <button type="button" className="auth-switch-button" onClick={onSwitchToLogin} disabled={isLoading}>Sign in</button></p>
+          </div>
         </form>
-
-        <div className="auth-footer">
-          <p className="auth-switch-text">Already have an account? <button type="button" className="link-button" onClick={onSwitchToLogin} disabled={isLoading}>Sign in</button></p>
-        </div>
       </div>
     </div>
   );
