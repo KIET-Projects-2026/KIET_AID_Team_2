@@ -9,6 +9,24 @@
   font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
 }
 
+/* Signup & Signin: remove outer container visuals to make the page edge-aligned */
+.auth-container.signup,
+.auth-container.signin {
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0.5rem 0 !important;
+}
+.auth-container.signup {
+  /* Create Account container height */
+  min-height: 10vh !important;
+}
+.auth-container.signin {
+  /* Sign-in container height (user requested 15vh) */
+  min-height: 15vh !important;
+}
+
+
 .auth-container h2, .profile-container h2 {
   text-align: center;
   color: #14b8a6;
@@ -340,6 +358,22 @@
 .auth-hero .hero-icon { width: 56px; height: 56px; }
 .auth-hero .hero-title { font-size: 1.2rem; }
 .auth-hero .hero-sub { max-width: 48ch; margin: 0 auto; }
+
+/* Signup-only: remove outer card visuals and make hero very compact */
+.auth-container.signup .auth-card {
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+.auth-container.signup .auth-hero {
+  min-height: 5vh; /* make hero compact as requested */
+  padding: 6px 12px;
+}
+.auth-container.signup .auth-form {
+  padding: 8px 12px; /* make form tighter when card removed */
+}
 .auth-hero .hero-icon {
   width: 64px;
   height: 64px;

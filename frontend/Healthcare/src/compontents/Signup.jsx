@@ -165,7 +165,7 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
   const getPasswordStrengthText = () => { if (passwordStrength < 40) return 'Weak'; if (passwordStrength < 70) return 'Medium'; return 'Strong'; };
 
   return (
-    <div className={`auth-container ${isAnimating ? 'active' : ''}`}>
+    <div className={`auth-container signup ${isAnimating ? 'active' : ''}`}>
       <div className="auth-card">
         <div className="auth-hero">
           <div className="hero-icon">🩺</div>

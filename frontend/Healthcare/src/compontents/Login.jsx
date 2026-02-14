@@ -52,7 +52,7 @@ const Login = ({ onLoginSuccess, onSwitchToSignup }) => {
   };
 
   return (
-    <div className={`auth-container ${isAnimating ? 'active' : ''}`}>
+    <div className={`auth-container signin ${isAnimating ? 'active' : ''}`}>
       <div className="auth-card">
         <div className="auth-hero">
           <div className="hero-icon">🩺</div>
