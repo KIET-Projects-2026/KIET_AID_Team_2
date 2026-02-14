@@ -64,6 +64,18 @@ const Profile = ({ onLogout }) => {
     setSaveError(null);
   };
 
+  const handleBack = () => {
+    if (editMode) {
+      // In edit mode, cancel editing and return to profile view
+      setEditMode(false);
+      setEditData(user);
+      setSaveError(null);
+    } else {
+      // Not in edit mode, close the profile
+      window.dispatchEvent(new CustomEvent('closeProfile'));
+    }
+  };
+
   const handleCancel = () => {
     setEditMode(false);
     setEditData(user);
@@ -148,7 +160,7 @@ const Profile = ({ onLogout }) => {
   return (
     <div className="profile-page">
       <div className="profile-header-bar">
-        <button className="back-btn" onClick={() => window.dispatchEvent(new CustomEvent('closeProfile'))}>
+        <button className="back-btn" onClick={handleBack}>
           <span className="back-arrow">←</span> Back
         </button>
         <h2>My Profile</h2>
