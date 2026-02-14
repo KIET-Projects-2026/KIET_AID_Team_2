@@ -205,9 +205,6 @@ const Profile = ({ onLogout }) => {
             ) : (
               <>
                 <button onClick={handleEdit} className="btn">Edit Profile</button>
-                {typeof onLogout === 'function' && (
-                  <button onClick={() => { if (window.confirm('Logout now?')) onLogout(); }} className="btn btn-logout">Logout</button>
-                )}
               </>
             )}
           </div>

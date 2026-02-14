@@ -852,6 +852,44 @@ body {
   gap: 1rem;
 }
 
+/* Profile dropdown (header) */
+.profile-menu-wrapper {
+  position: relative;
+  display: inline-block;
+}
+.profile-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(2,6,23,0.12);
+  padding: 6px;
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition: opacity 160ms var(--ease-standard), transform 160ms var(--ease-standard);
+  z-index: 2000;
+}
+.profile-menu.open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.profile-menu__item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+.profile-menu__item:hover,
+.profile-menu__item:focus { background: var(--color-secondary-hover); outline: none; }
+.profile-menu__divider { height: 1px; background: var(--color-card-border-inner); margin: 6px 0; border-radius: 2px; }
+
 .menu-btn {
   background: #e0f2f1;
   color: #14b8a6;
@@ -1909,6 +1947,83 @@ body {
   .messages-container { max-height: calc(100vh - 200px); padding: 1rem; }
   .sidebar { display: none; }
   .voice-assistant-fab-wrapper { right: 18px; bottom: 100px; }
+
+  /* Mobile / tablet overlay for sidebar when opened via hamburger */
+  .sidebar-backdrop { display: none; }
+  .chat-grid .sidebar.open { display: none; }
+  .chat-grid.sidebar-closed .messages-container { pointer-events: auto; }
+}
+
+/* Show overlayed sidebar + backdrop when screen is small and sidebar has .open */
+@media (max-width: 900px) {
+  .sidebar-backdrop { display: none; }
+  .chat-grid .sidebar.open { display: none; }
+}
+
+/* Mobile overlay styles (apply when we explicitly render the backdrop + open class) */
+@media (max-width: 640px) {
+  /* full-screen overlay on small devices */
+  .sidebar-backdrop { display: block; position: fixed; inset: 0; background: rgba(2,6,23,0.7); backdrop-filter: blur(6px); z-index: 10000; opacity: 1; transition: opacity 180ms ease; }
+  .chat-grid .sidebar.open {
+    display: block;
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh; /* ensure full viewport coverage */
+    max-height: none; /* override earlier max-height */
+    z-index: 10001;
+    transform: translateX(0);
+    box-shadow: none;
+    border-radius: 0;
+    background: var(--color-surface);
+    margin: 0;
+    overflow: hidden; /* inner list will scroll */
+    display: flex;
+    flex-direction: column;
+  }
+  /* keep header (buttons) visible while list scrolls */
+  .chat-grid .sidebar.open .sidebar-header { position: sticky; top: 0; z-index: 4; background: inherit; padding-top: 12px; }
+  .chat-grid .sidebar.open .conversations-list { flex: 1 1 auto; overflow: auto; padding-bottom: 24px; }
+
+  .chat-grid.sidebar-closed { grid-template-columns: 1fr; }
+  /* while sidebar overlays, prevent interaction with messages (backdrop already covers) */
+  .chat-grid.sidebar-closed .messages-container { pointer-events: none; }
+
+  /* show mobile close button inside the sidebar header */
+  .sidebar-close { display: inline-flex; align-items: center; justify-content: center; padding: 6px 8px; border-radius: 8px; background: transparent; border: 1px solid rgba(0,0,0,0.06); color: var(--color-text-secondary); margin-left: 8px; }
+}
+
+
+@media (min-width: 641px) and (max-width: 900px) {
+  .sidebar-backdrop { display: block; position: fixed; inset: 0; background: rgba(2,6,23,0.4); backdrop-filter: blur(3px); z-index: 10000; opacity: 1; transition: opacity 180ms ease; }
+  .chat-grid .sidebar.open {
+    display: block;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: min(58vw, 420px);
+    max-width: 420px;
+    z-index: 10001;
+    transform: translateX(0);
+    box-shadow: 0 24px 60px rgba(2,6,23,0.25);
+    border-radius: 0 12px 12px 0;
+    background: var(--color-surface);
+    margin: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-height: none;
+  }
+  .chat-grid .sidebar.open .sidebar-header { position: sticky; top: 0; z-index: 4; background: inherit; }
+  .chat-grid .sidebar.open .conversations-list { flex: 1 1 auto; overflow: auto; padding-bottom: 20px; }
+
+  .chat-grid.sidebar-closed { grid-template-columns: 1fr; }
+  .chat-grid.sidebar-closed .messages-container { pointer-events: none; }
 }
 
 /* Large desktop: keep content centered and increase max-width */
@@ -2040,6 +2155,11 @@ body {
   .chat-grid {
     grid-template-columns: 280px 1fr;
   }
+}
+
+/* Hide the mobile-only close button on wider screens (>= 769px) */
+@media (min-width: 769px) {
+  .sidebar-close { display: none !important; }
 }
 
 /* Desktops and large screens (1025px+) */
@@ -2634,16 +2754,19 @@ body {
 /* Mobile (320px-480px) */
 @media (max-width: 480px) {
   .voice-assistant-fab {
-    width: 52px;
-    height: 52px;
-    bottom: 20px;
-    right: 20px;
+    width: 40px;
+    height: 40px;
+    bottom: 18px;
+    right: 18px;
+    font-size: 18px;
   }
 
   .voice-assistant-fab svg {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
   }
+
+  .voice-assistant-fab:hover { transform: scale(1.05); }
 
   .voice-assistant-panel {
     border-radius: 24px 24px 0 0;
@@ -2691,10 +2814,50 @@ body {
 
 /* Tablets (481px - 768px) */
 @media (min-width: 481px) and (max-width: 768px) {
+  /* Tablet: show assistant as a centered modal (not bottom sheet) */
+  .voice-assistant-overlay { align-items: center; }
   .voice-assistant-panel {
-    max-width: 420px;
-    min-height: 400px;
+    max-width: 520px;
+    width: min(92%, 520px);
+    min-height: 380px;
+    padding: 1.75rem 1.5rem 2rem;
+    border-radius: 20px;
+    box-shadow: 0 20px 80px rgba(2,6,23,0.45);
+    margin: 0 auto;
+    overflow: hidden;
   }
+  .voice-assistant-panel .conversations-list { max-height: none; }
+  .va-orb-container { width: 110px; height: 110px; }
+  .va-orb { width: 76px; height: 76px; }
+}
+
+/* Tablets (481px - 1024px) — slightly smaller FAB than desktop */
+@media (min-width: 481px) and (max-width: 1024px) {
+  .voice-assistant-fab {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
+  .voice-assistant-fab svg {
+    width: 18px;
+    height: 18px;
+  }
+  .voice-assistant-fab:hover { transform: scale(1.05); }
+}
+
+/* Mobile (<= 480px) — make assistant a bottom sheet with scrollable content */
+@media (max-width: 480px) {
+  .voice-assistant-overlay { align-items: flex-end; }
+  .voice-assistant-panel {
+    width: 100%;
+    max-width: 100%;
+    height: 60vh; /* bottom-sheet height */
+    max-height: 86vh;
+    overflow-y: auto;
+    border-radius: 20px 20px 0 0;
+  }
+  .va-orb-container { width: 100px; height: 100px; }
+  .va-orb { width: 68px; height: 68px; }
 }
 
 /* Desktop (769px+) */
@@ -2802,11 +2965,27 @@ body {
   position: fixed;
   bottom: 28px;
   right: 28px;
-  z-index: 9999;
+  z-index: 10002; /* keep FAB above overlays */
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
+}
+
+/* Tablet: place FAB at viewport bottom-right for easier reach */
+@media (min-width: 481px) and (max-width: 1024px) {
+  .voice-assistant-fab-wrapper {
+    position: fixed;
+    bottom: 28px;
+    top: auto;
+    right: 28px;
+    transform: none;
+  }
+}
+
+/* Small phones: slightly smaller offset */
+@media (max-width: 400px) {
+  .voice-assistant-fab-wrapper { bottom: 18px; right: 16px; }
 }
 
 /* Override FAB positioning when inside wrapper */

@@ -8,7 +8,7 @@
 // ===================== 2. HEALTHCARECHATBOT.JSX (COMPLETE WORKING VERSION) =====================
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
-import { FiMic, FiSend, FiRefreshCw, FiTrash2, FiVolume2, FiStopCircle, FiLogOut, FiUser, FiMenu, FiChevronLeft, FiX, FiMicOff } from 'react-icons/fi';
+import { FiMic, FiSend, FiTrash2, FiVolume2, FiStopCircle, FiUser, FiMenu, FiChevronLeft, FiX, FiMicOff } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import './HealthcareChatbot.css';
 import {
@@ -55,6 +55,26 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   const [continuousMode, setContinuousMode] = useState(true); // auto-listen after bot speaks
   const [audioLevel, setAudioLevel] = useState(0); // for visualizer animation
   const [selectedVoice, setSelectedVoice] = useState(null);
+
+  // Profile menu (header) state + outside-click handler
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const onDocClick = (e) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    const onKey = (e) => { if (e.key === 'Escape') setProfileMenuOpen(false); };
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [profileMenuOpen]);
 
   // ========== WAKE WORD DETECTION ("Hey Voicebot") ==========
   const [wakeWordEnabled, setWakeWordEnabled] = useState(true); // background listening for wake word
@@ -1227,10 +1247,6 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
     }
   };
 
-  const handleResetInput = () => {
-    setInputText('');
-  };
-
   // Clear all conversations
   const clearAllChats = async () => {
     if (!conversations || conversations.length === 0) {
@@ -1552,7 +1568,8 @@ Powered by: Healthcare AI Chatbot v2.0
 
   // ========== RENDER ==========
   return (
-    <div className="chatbot-container">
+    <>
+      <div className="chatbot-container">
       {/* Fixed left-edge hamburger for quickly opening/closing the chat history */}
       {/* <button
         className={`global-toggle ${sidebarOpen ? 'open' : ''}`}
@@ -1565,7 +1582,7 @@ Powered by: Healthcare AI Chatbot v2.0
       </button> */}
       <div className="chatbot-header">
         <div className="chatbot-header-actions">
-          <button className="menu-btn" title="Menu" onClick={() => setSidebarOpen(!sidebarOpen)}>
+          <button className="menu-btn" title="Menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(!sidebarOpen)}>
             <FiMenu />
           </button>
         </div>
@@ -1576,15 +1593,24 @@ Powered by: Healthcare AI Chatbot v2.0
         <div className="chatbot-header-actions">
           
           <span className="user-badge">{currentUser?.username || 'User'}</span>
-          {/* show profile icon instead of Logout; clicking opens the Profile pane */}
-          <button
-            className="btn profile-icon"
-            title="Open profile"
-            aria-label="Open profile"
-            onClick={() => window.dispatchEvent(new CustomEvent('openProfile'))}
-          >
-            <FiUser />
-          </button>
+          <div className="profile-menu-wrapper" ref={profileMenuRef}>
+            <button
+              className="btn profile-icon"
+              title={profileMenuOpen ? 'Close menu' : 'Open profile menu'}
+              aria-haspopup="menu"
+              aria-expanded={profileMenuOpen}
+              onClick={() => setProfileMenuOpen(p => !p)}
+            >
+              <FiUser />
+            </button>
+
+            <div className={`profile-menu ${profileMenuOpen ? 'open' : ''}`} role="menu" aria-hidden={!profileMenuOpen}>
+              <button className="profile-menu__item" role="menuitem" onClick={() => { window.dispatchEvent(new CustomEvent('openProfile')); setProfileMenuOpen(false); }}>Profile</button>
+              <button className="profile-menu__item" role="menuitem" onClick={() => { setShowDashboard(true); setProfileMenuOpen(false); }}>Dashboard</button>
+              <div className="profile-menu__divider" />
+              <button className="profile-menu__item" role="menuitem" onClick={() => { if (typeof onLogout === 'function') { if (window.confirm('Logout now?')) onLogout(); } setProfileMenuOpen(false); }}>Logout</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1764,10 +1790,10 @@ Powered by: Healthcare AI Chatbot v2.0
       )}
 
       {/* ========== FEATURE TOOLBAR (below header) ========== */}
-      <div className="feature-toolbar">
+      {/* <div className="feature-toolbar">
 
 
-        {/* Health Tips Carousel */}
+       
         <div className="toolbar-section tips-section">
           {(() => {
             const activeTipsList = serverTips && serverTips.length ? serverTips.map(t => ({ icon: '💡', tip: t, category: '' })) : HEALTH_TIPS;
@@ -1776,7 +1802,7 @@ Powered by: Healthcare AI Chatbot v2.0
           })()}
         </div>
 
-        {/* Action Buttons */}
+      
         <div className="toolbar-section toolbar-actions">
 
           <button className="toolbar-btn" onClick={() => setShowDashboard(!showDashboard)} title="Health Dashboard">
@@ -1786,9 +1812,9 @@ Powered by: Healthcare AI Chatbot v2.0
             📄 {exportingPdf ? 'Exporting...' : 'Export'}
           </button>
         </div>
-      </div>
+      </div> */}
 
-      {/* ========== HEALTH DASHBOARD PANEL ========== */}
+     
       {showDashboard && (() => {
         const stats = getDashboardStats();
         return (
@@ -1840,19 +1866,35 @@ Powered by: Healthcare AI Chatbot v2.0
 
       {/* Toast notifications are handled by ToastContainer in App */}
 
+      {/* Backdrop for mobile sidebar overlay (click to dismiss) */}
+      {sidebarOpen && (
+        <div
+          className="sidebar-backdrop"
+          role="button"
+          tabIndex={0}
+          aria-label="Close chats overlay"
+          onClick={() => setSidebarOpen(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') setSidebarOpen(false); }}
+        />
+      )}
+
       <div className={`chat-grid ${sidebarOpen ? '' : 'sidebar-closed'}`}>
-        {/* Sidebar - Conversations */}
+        {/* Sidebar - Conversations (on mobile it overlays when `open`) */}
         <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`} aria-hidden={!sidebarOpen}>
           <div className="sidebar-header">
             <h3>Chats</h3>
             <div className="sidebar-actions">
-              <button className="btn new-chat" onClick={() => startNewConversation()}>New Chat</button>
+              <button className="btn new-chat" onClick={() => { startNewConversation(); setSidebarOpen(false); }}>New Chat</button>
               {conversations.length > 0 && (
                 <button className="btn clear-all-btn" onClick={() => clearAllChats()} title="Delete all chats">
-                  🗑️ Clear All
+                  Clear All
                 </button>
               )}
-              {/* <button className="btn toggle-sidebar" onClick={() => setSidebarOpen(!sidebarOpen)}>{sidebarOpen ? '◀' : '▶'}</button> */}
+
+              {/* Mobile-only close button (also works as overlay close) */}
+              <button className="btn sidebar-close" title="Close chats" aria-label="Close chats" onClick={() => setSidebarOpen(false)}>
+                <FiX />
+              </button>
             </div>
           </div>
 
@@ -1862,7 +1904,7 @@ Powered by: Healthcare AI Chatbot v2.0
               <div className="empty-convos">No conversations yet — start a new chat</div>
             )}
             {conversations.map((c) => (
-              <div key={c.conversation_id} className={`conversation-item ${activeConversationId === c.conversation_id ? 'active' : ''}`} onClick={() => loadConversation(c.conversation_id)}>
+              <div key={c.conversation_id} className={`conversation-item ${activeConversationId === c.conversation_id ? 'active' : ''}`} onClick={() => { loadConversation(c.conversation_id); setSidebarOpen(false); }}>
                 <div className="conv-title">{c.first_snippet || c.last_snippet || 'New Conversation'}</div>
                 <div className="conv-sub">{c.last_snippet ? `Latest: ${c.last_snippet}` : ''}</div>
                 <div className="conv-meta">{new Date(c.last_timestamp || c.first_timestamp).toLocaleString()} · {c.count} msgs</div>
@@ -1948,16 +1990,6 @@ Powered by: Healthcare AI Chatbot v2.0
 
           <button
             type="button"
-            onClick={handleResetInput}
-            disabled={isLoading || !inputText.trim()}
-            className="btn btn-reset"
-            title="Clear input"
-          >
-            <FiRefreshCw />
-          </button>
-
-          <button
-            type="button"
             onClick={handleVoiceToggle}
             disabled={isLoading}
             className={`btn btn-voice ${isRecording ? 'recording' : ''}`}
@@ -1996,29 +2028,6 @@ Powered by: Healthcare AI Chatbot v2.0
         )}
       </div>
 
-      {/* ========== FLOATING VOICE ASSISTANT BUTTON ========== */}
-      {!voiceAssistantActive && (
-        <div className="voice-assistant-fab-wrapper">
-          {/* Wake word status indicator */}
-          {wakeWordEnabled && (
-            <div className={`wake-word-indicator ${wakeWordListening ? 'active' : ''}`}
-                 title={wakeWordListening ? 'Say "Voice" to activate' : 'Wake word starting...'}
-            >
-              <div className="wake-word-dot" />
-              <span className="wake-word-label">Say &quot;Voice&quot;</span>
-            </div>
-          )}
-          <button
-            className="voice-assistant-fab"
-            onClick={openVoiceAssistant}
-            title="Open Voice Assistant"
-            aria-label="Open voice assistant"
-          >
-            <FiMic />
-            <span className="fab-pulse" />
-          </button>
-        </div>
-      )}
 
       {/* ========== VOICE ASSISTANT OVERLAY (Google Assistant-like) ========== */}
       {voiceAssistantActive && (
@@ -2135,6 +2144,23 @@ Powered by: Healthcare AI Chatbot v2.0
         </div>
       )}
     </div>
+
+    {/* ========== FLOATING VOICE ASSISTANT BUTTON (moved outside container) ========== */}
+    {!voiceAssistantActive && (
+      <div className="voice-assistant-fab-wrapper" aria-hidden={voiceAssistantActive}>
+        {wakeWordEnabled && (
+          <div className={`wake-word-indicator ${wakeWordListening ? 'active' : ''}`} title={wakeWordListening ? 'Say "Voice" to activate' : 'Wake word starting...'}>
+            <div className="wake-word-dot" />
+            <span className="wake-word-label">Say "Voice"</span>
+          </div>
+        )}
+        <button className="voice-assistant-fab" onClick={openVoiceAssistant} title="Open Voice Assistant" aria-label="Open voice assistant">
+          <FiMic />
+          <span className="fab-pulse" />
+        </button>
+      </div>
+    )}
+  </>
   );
 };
 
