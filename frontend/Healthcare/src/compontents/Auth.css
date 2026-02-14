@@ -72,6 +72,17 @@
   margin-bottom: 1rem;
 }
 .profile-header h2 { margin: 0; flex: 1; text-align: center; }
+/* Place edit button at top-right and keep its width to content */
+.profile-header .edit-btn {
+  display: inline-flex;
+  width: fit-content !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  padding: 6px 10px;
+  font-size: 0.95rem;
+  margin-left: 0.5rem;
+  background: gray;
+}
 .back-btn {
   background: transparent;
   border: none;
@@ -84,10 +95,12 @@
 .back-btn:hover { background: rgba(20,184,166,0.06); }
 
 .profile-card {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 1.25rem;
-  box-shadow: 0 8px 30px rgba(17,24,39,0.04);
+  /* removed card visuals per design request — make details flow with page */
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  border: none;
 }
 
 .profile-grid {
@@ -151,7 +164,7 @@
   .form-input {
     padding-right: 44px;
   }
-  .profile-card { padding: 1rem; }
+  .profile-card { padding: 0; }
   .profile-grid { grid-template-columns: 1fr 1fr; gap: 10px 12px; }
   .profile-header h2 { font-size: 1.15rem; }
   .profile-actions { justify-content: space-between; gap: 10px; }
@@ -160,7 +173,7 @@
 @media (max-width: 640px) {
   .profile-grid { grid-template-columns: 1fr; gap: 10px; }
   .profile-container { padding: 0.75rem; margin: 12px; }
-  .profile-card { padding: 0.85rem; }
+  .profile-card { padding: 0; }
   .profile-header { gap: 8px; }
   .back-btn { padding: 6px 8px; font-size: 0.9rem; }
   .profile-header h2 { font-size: 1.05rem; }
@@ -172,7 +185,7 @@
 
 @media (max-width: 420px) {
   .profile-container { margin: 8px; padding: 0.6rem; }
-  .profile-card { padding: 0.6rem; }
+  .profile-card { padding: 0; }
   .profile-header h2 { font-size: 1rem; }
   .profile-grid p, .profile-grid input { font-size: 0.92rem; }
   .back-btn { font-size: 0.9rem; padding: 6px 8px; }
@@ -664,6 +677,31 @@
   .auth-icon {
     width: 22px;
     height: 22px;
+  }
+
+  /* Prevent global .btn flex rules from stretching the header Edit button */
+  .profile-header .edit-btn,
+  .profile-header .btn.edit-btn {
+    flex: 0 0 auto !important;
+    width: fit-content !important;
+    align-self: center;
+  }
+
+  /* Position Save / Cancel as bottom-right inside the profile container */
+  .profile-container { position: relative; }
+  .profile-actions {
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    margin-top: 0; /* cancel normal flow spacing */
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .profile-actions button {
+    flex: 0 0 auto !important;
+    width: fit-content !important;
   }
 }
 

@@ -773,12 +773,13 @@ body {
 .chatbot-container {
   max-width: 1000px;
   margin: 24px auto;
+  padding: 20px;
   background: #ffffff; /* white card */
   border-radius: 12px;
   box-shadow: 0 8px 30px rgba(17,24,39,0.06);
   display: flex;
   flex-direction: column;
-  min-height: 80vh;
+  min-height: 85vh;
   overflow: hidden;
   border: 1px solid rgba(0,0,0,0.04);
   position: relative; /* required for absolutely positioned floating button */
@@ -1943,7 +1944,7 @@ body {
 
 /* Tablet / small laptop tweaks */
 @media (min-width: 481px) and (max-width: 900px) {
-  .chatbot-container { margin: 12px; min-height: calc(100vh - 24px); }
+  .chatbot-container { margin: 12px; min-height: 85vh; padding: 20px; }
   .messages-container { max-height: calc(100vh - 200px); padding: 1rem; }
   .sidebar { display: none; }
   .voice-assistant-fab-wrapper { right: 18px; bottom: 100px; }
@@ -2040,7 +2041,8 @@ body {
 
   .chatbot-container {
     margin: 0.5rem auto;
-    min-height: calc(100vh - 1rem);
+    min-height: 85vh;
+    padding: 20px;
   }
 
   .chatbot-header {
