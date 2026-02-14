@@ -225,10 +225,14 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   const fetchConversationsInProgressRef = useRef(false); // guard against concurrent fetches
   const processQueryInProgressRef = useRef(false); // guard against concurrent voice queries
 
+  // Mirror assistant state in a ref for cross-callback checks
+  const assistantStateRef = useRef(assistantState);
+
   // Keep refs in sync with state for use inside callbacks
   useEffect(() => { voiceAssistantActiveRef.current = voiceAssistantActive; }, [voiceAssistantActive]);
   useEffect(() => { continuousModeRef.current = continuousMode; }, [continuousMode]);
   useEffect(() => { wakeWordEnabledRef.current = wakeWordEnabled; }, [wakeWordEnabled]);
+  useEffect(() => { assistantStateRef.current = assistantState; }, [assistantState]);
 
   // ========== SELECT BEST TTS VOICE (prefer Google / natural voices) ==========
   useEffect(() => {
@@ -678,8 +682,11 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
       console.log('Wake word: SpeechRecognition not supported');
       return;
     }
-    if (voiceAssistantActiveRef.current) {
-      console.log('Wake word: Assistant is active, skipping');
+    // If the assistant is actively listening/processing, don't start the wake-word recognizer
+    // but allow the wake-word to run when the assistant modal is open AND idle so a user
+    // can say the wake word to start listening without tapping the orb.
+    if (assistantStateRef.current === 'listening' || assistantStateRef.current === 'processing') {
+      console.log('🛑 Wake word: Assistant busy, skipping start');
       return;
     }
 
@@ -742,11 +749,24 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
           if (listeningTimeout) clearTimeout(listeningTimeout);
           try { recognition.stop(); } catch (_) {}
           setWakeWordListening(false);
-          console.log('🚀 Wake word DETECTED! Opening assistant...');
+
           // Show what was detected
-          toast.success(`🎯 Detected: "${mainTranscript.trim()}"`, { autoClose: 1500 });
-          toast.info('🎙️ "Voice" detected! Activating...', { autoClose: 2000 });
-          setTimeout(() => openVoiceAssistant(), 300);
+          toast.success(`🎯 Detected: "${mainTranscript.trim()}"`, { autoClose: 1200 });
+
+          // If assistant modal is open, trigger assistant listening; otherwise open the assistant
+          if (voiceAssistantActiveRef.current) {
+            console.log('🚀 Wake word DETECTED while assistant open — starting assistant listening');
+            toast.info('🎙️ Activating assistant (listening)...', { autoClose: 1200 });
+            // only start assistant listening if it's idle
+            if (assistantStateRef.current === 'idle') {
+              setTimeout(() => startAssistantListening(), 200);
+            }
+          } else {
+            console.log('🚀 Wake word DETECTED! Opening assistant...');
+            toast.info('🎙️ "Voice" detected! Activating...', { autoClose: 1200 });
+            setTimeout(() => openVoiceAssistant(), 300);
+          }
+
           return;
         }
       }
@@ -756,13 +776,16 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
       if (listeningTimeout) clearTimeout(listeningTimeout);
       wakeWordRunningRef.current = false;
       setWakeWordListening(false);
-      if (wakeWordTriggered) return; // don't restart if we triggered the assistant
-      console.log('⏹️ Wake word: Listening ended, will restart soon');
-      // Auto-restart immediately for continuous availability
-      if (wakeWordEnabledRef.current && !voiceAssistantActiveRef.current) {
-        console.log('🔄 Wake word: Restarting listener...');
+
+      // If we triggered a wake-word, do not restart immediately — assistant will handle mic usage.
+      if (wakeWordTriggered) return;
+
+      console.log('⏹️ Wake word: Listening ended, will restart soon (if allowed)');
+
+      // Auto-restart when wake-word is still enabled and assistant is not actively listening/processing
+      if (wakeWordEnabledRef.current && assistantStateRef.current !== 'listening' && assistantStateRef.current !== 'processing') {
         setTimeout(() => {
-          if (wakeWordEnabledRef.current && !voiceAssistantActiveRef.current && !wakeWordRunningRef.current) {
+          if (wakeWordEnabledRef.current && assistantStateRef.current !== 'listening' && !wakeWordRunningRef.current) {
             startWakeWordListener();
           }
         }, 500);
@@ -789,11 +812,11 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
         console.error('Wake word: Network error');
       }
 
-      // For no-speech, network, etc. — retry
-      if (wakeWordEnabledRef.current && !voiceAssistantActiveRef.current) {
+      // For no-speech, network, etc. — retry if wake-word still enabled and assistant not actively listening
+      if (wakeWordEnabledRef.current && assistantStateRef.current !== 'listening' && assistantStateRef.current !== 'processing') {
         const delay = event.error === 'no-speech' ? 500 : 1500;
         setTimeout(() => {
-          if (wakeWordEnabledRef.current && !voiceAssistantActiveRef.current && !wakeWordRunningRef.current) {
+          if (wakeWordEnabledRef.current && assistantStateRef.current !== 'listening' && !wakeWordRunningRef.current) {
             startWakeWordListener();
           }
         }, delay);
@@ -809,7 +832,7 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
       wakeWordRunningRef.current = false;
       setWakeWordListening(false);
       setTimeout(() => {
-        if (wakeWordEnabledRef.current && !voiceAssistantActiveRef.current && !wakeWordRunningRef.current) {
+        if (wakeWordEnabledRef.current && assistantStateRef.current !== 'listening' && !wakeWordRunningRef.current) {
           startWakeWordListener();
         }
       }, 1500);
@@ -829,7 +852,9 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
   useEffect(() => {
     // Use a small delay to avoid double-start from React strict mode or fast re-renders
     let timer;
-    if (wakeWordEnabled && !voiceAssistantActive) {
+
+    // Start wake-word listener whenever enabled as long as the assistant is NOT actively listening/processing.
+    if (wakeWordEnabled && assistantState !== 'listening' && assistantState !== 'processing') {
       timer = setTimeout(() => {
         if (!wakeWordRunningRef.current) {
           startWakeWordListener();
@@ -838,11 +863,12 @@ const HealthcareChatbot = ({ currentUser, onLogout }) => {
     } else {
       stopWakeWordListener();
     }
+
     return () => {
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
       stopWakeWordListener();
     };
-  }, [wakeWordEnabled, voiceAssistantActive, startWakeWordListener, stopWakeWordListener]);
+  }, [wakeWordEnabled, assistantState, startWakeWordListener, stopWakeWordListener]);
 
   // Cleanup on unmount
   useEffect(() => {
