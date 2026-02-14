@@ -123,6 +123,7 @@ function App() {
         draggable
         pauseOnHover
         theme="light"
+        limit={1} /* ensure only one toast is visible at a time */
       />
       {!isAuthenticated ? (
         showHome ? (

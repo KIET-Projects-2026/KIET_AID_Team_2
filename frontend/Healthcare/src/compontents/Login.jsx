@@ -36,12 +36,15 @@ const Login = ({ onLoginSuccess, onSwitchToSignup }) => {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+        toast.dismiss();
         toast.success('🎉 Login successful!');
         onLoginSuccess(response.data);
       } else {
+        toast.dismiss();
         toast.error('Unexpected response. Please try again.');
       }
     } catch (err) {
+      toast.dismiss();
       toast.error(err.response?.data?.detail || err.response?.data?.message || (err.message === 'Network Error' ? `Network error. Is backend running on ${API_BASE_URL}?` : err.message) || 'Login failed.');
     } finally {
       setIsLoading(false);
@@ -80,14 +83,14 @@ const Login = ({ onLoginSuccess, onSwitchToSignup }) => {
                 style={{ paddingRight: '0.5rem' }}
               />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', gap: '12px' }}>
               <button type="button" className="link-button" onClick={handleForgot}>Forgot password?</button>
+
+              <button type="submit" className={`auth-button auth-button--side ${isLoading ? 'loading' : ''}`} disabled={isLoading} aria-busy={isLoading}>
+                {isLoading ? (<><div className="spinner" />Signing in...</>) : (<><FiLogIn />Sign in</>)}
+              </button>
             </div>
           </div>
-
-          <button type="submit" className={`auth-button ${isLoading ? 'loading' : ''}`} disabled={isLoading} aria-busy={isLoading}>
-            {isLoading ? (<><div className="spinner" />Signing in...</>) : (<><FiLogIn />Sign in</>)}
-          </button>
         </form>
 
         <div className="auth-footer">

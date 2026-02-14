@@ -47,7 +47,9 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
   const usernameCheckRef = React.useRef(null);
 
   const handleNext = () => {
-    if (validateStep(step)) setStep(s => Math.min(3, s + 1));
+    const err = validateStep(step);
+    if (err) { toast.dismiss(); toast.error(err); return; }
+    setStep(s => Math.min(3, s + 1));
   };
   const handleBack = () => setStep(s => Math.max(0, s - 1));
 
@@ -57,7 +59,8 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
     if (index < step) { setStep(index); return; }
     // moving forward: validate each intermediate step first
     for (let s = step; s < index; s++) {
-      if (!validateStep(s)) { toast.error('Please complete the current step before proceeding'); return; }
+      const err = validateStep(s);
+      if (err) { toast.dismiss(); toast.error(err); return; }
     }
     setStep(index);
   };
@@ -81,46 +84,48 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
     }
   };
 
+  // Return a single error message string when invalid, otherwise null
   const validateForm = () => {
-    if (!formData.username || formData.username.length < 3) { toast.error('Username is required and must be at least 3 characters long'); return false; }
-    if (usernameAvailable === false) { toast.error('Username is already taken'); return false; }
-    if (formData.password.length < 6) { toast.error('Password must be at least 6 characters long'); return false; }
-    if (formData.password !== formData.confirmPassword) { toast.error('Passwords do not match'); return false; }
-    if (!formData.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.email)) { toast.error('Valid email is required'); return false; }
-    if (!formData.emergencyEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.emergencyEmail)) { toast.error('Valid emergency email is required'); return false; }
-    if (!formData.phone || !/^\d{10,15}$/.test(formData.phone)) { toast.error('Valid phone number is required'); return false; }
-    if (!formData.age || isNaN(formData.age) || formData.age < 0 || formData.age > 120) { toast.error('Valid age is required'); return false; }
-    if (!formData.gender) { toast.error('Gender is required'); return false; }
-    if (!formData.emergencyContact) { toast.error('Emergency contact is required'); return false; }
-    return true;
+    if (!formData.username || formData.username.length < 3) return 'Username is required and must be at least 3 characters long';
+    if (usernameAvailable === false) return 'Username is already taken';
+    if (formData.password.length < 6) return 'Password must be at least 6 characters long';
+    if (formData.password !== formData.confirmPassword) return 'Passwords do not match';
+    if (!formData.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.email)) return 'Valid email is required';
+    if (!formData.emergencyEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.emergencyEmail)) return 'Valid emergency email is required';
+    if (!formData.phone || !/^\d{10,15}$/.test(formData.phone)) return 'Valid phone number is required';
+    if (!formData.age || isNaN(formData.age) || formData.age < 0 || formData.age > 120) return 'Valid age is required';
+    if (!formData.gender) return 'Gender is required';
+    if (!formData.emergencyContact) return 'Emergency contact is required';
+    return null;
   };
 
-  // per-step validation for wizard
+  // per-step validation for wizard — return an error message or null
   const validateStep = (s) => {
     if (s === 0) {
-      if (!formData.username || formData.username.length < 3) { toast.error('Please choose a username (min 3 chars)'); return false; }
-      if (usernameAvailable === false) { toast.error('Username already taken'); return false; }
-      if (!formData.password || formData.password.length < 6) { toast.error('Enter a password (min 6 chars)'); return false; }
-      if (formData.password !== formData.confirmPassword) { toast.error('Passwords must match'); return false; }
-      return true;
+      if (!formData.username || formData.username.length < 3) return 'Please choose a username (min 3 chars)';
+      if (usernameAvailable === false) return 'Username already taken';
+      if (!formData.password || formData.password.length < 6) return 'Enter a password (min 6 chars)';
+      if (formData.password !== formData.confirmPassword) return 'Passwords must match';
+      return null;
     }
     if (s === 1) {
-      if (!formData.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.email)) { toast.error('Please enter a valid email'); return false; }
-      if (!formData.phone || !/^\d{10,15}$/.test(formData.phone)) { toast.error('Please enter a valid phone number'); return false; }
-      if (!formData.age || isNaN(formData.age) || formData.age < 0 || formData.age > 120) { toast.error('Please enter a valid age'); return false; }
-      return true;
+      if (!formData.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.email)) return 'Please enter a valid email';
+      if (!formData.phone || !/^\d{10,15}$/.test(formData.phone)) return 'Please enter a valid phone number';
+      if (!formData.age || isNaN(formData.age) || formData.age < 0 || formData.age > 120) return 'Please enter a valid age';
+      return null;
     }
     if (s === 2) {
-      if (!formData.emergencyContact) { toast.error('Please provide an emergency contact'); return false; }
-      if (!formData.emergencyEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.emergencyEmail)) { toast.error('Please provide a valid emergency email'); return false; }
-      return true;
+      if (!formData.emergencyContact) return 'Please provide an emergency contact';
+      if (!formData.emergencyEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.emergencyEmail)) return 'Please provide a valid emergency email';
+      return null;
     }
-    return true;
+    return null;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    const err = validateForm();
+    if (err) { toast.dismiss(); toast.error(err); return; }
 
     setIsLoading(true);
 
@@ -143,13 +148,15 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+        toast.dismiss();
         toast.success('✨ Account created successfully!');
         onSignupSuccess(response.data);
-      } else { toast.error('Unexpected response. Please try again.'); }
+      } else { toast.dismiss(); toast.error('Unexpected response. Please try again.'); }
     } catch (err) {
       let detail = err.response?.data?.detail ?? err.response?.data?.message ?? null;
       if (Array.isArray(detail)) detail = detail.map(d => d.msg || (typeof d === 'string' ? d : JSON.stringify(d))).join('; ');
       if (!detail) { detail = err.response?.status === 400 ? 'Invalid signup data or username already exists' : err.message === 'Network Error' ? `Network error. Is backend running on ${API_BASE_URL}?` : err.message || 'Signup failed.'; }
+      toast.dismiss();
       toast.error(detail);
     } finally { setIsLoading(false); }
   };
@@ -203,9 +210,6 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
                     minLength="6"
                     required
                   />
-                  <button type="button" className="password-toggle" onClick={() => setShowPassword(s => !s)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
-                    {showPassword ? <FiEyeOff /> : <FiEye />}
-                  </button>
                 </div>
                 {formData.password && (
                   <div className="password-strength">
@@ -232,9 +236,6 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
                     minLength="6"
                     required
                   />
-                  <button type="button" className="password-toggle" onClick={() => setShowConfirmPassword(s => !s)} aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}>
-                    {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
-                  </button>
                 </div>
               </div>
 
