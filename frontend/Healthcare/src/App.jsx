@@ -23,7 +23,10 @@ function App() {
     // Check if user is already logged in
     const token = localStorage.getItem('token')
     const user = localStorage.getItem('user')
-    
+
+    // restore last-view (keeps login/signup/profile after page refresh)
+    const lastView = sessionStorage.getItem('lastView') || null
+
     if (token && user) {
       try {
         const parsedUser = JSON.parse(user)
@@ -31,12 +34,37 @@ function App() {
         setIsAuthenticated(true)
         // Set axios default header
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+
+        // if user was viewing profile before refresh, restore it
+        if (lastView === 'profile') {
+          setShowProfile(true)
+          setShowHome(false)
+          setShowLogin(false)
+        } else {
+          // default authenticated landing is chat
+          setShowProfile(false)
+          setShowHome(false)
+          setShowLogin(false)
+        }
       } catch (error) {
         console.error('Error parsing user data:', error)
         localStorage.removeItem('token')
         localStorage.removeItem('user')
       }
+    } else {
+      // unauthenticated: restore lastView (signup/login/home)
+      if (lastView === 'signup') {
+        setShowHome(false)
+        setShowLogin(false)
+      } else if (lastView === 'login') {
+        setShowHome(false)
+        setShowLogin(true)
+      } else {
+        setShowHome(true)
+        setShowLogin(true)
+      }
     }
+
     setIsLoading(false)
   }, [])
   // Keep `currentUser` in sync when other components update the profile
@@ -47,8 +75,14 @@ function App() {
     window.addEventListener('profileUpdated', handler);
 
     // listen for requests from child components to open/close the Profile view
-    const openProfileHandler = () => setShowProfile(true);
-    const closeProfileHandler = () => setShowProfile(false);
+    const openProfileHandler = () => {
+      setShowProfile(true);
+      sessionStorage.setItem('lastView', 'profile');
+    };
+    const closeProfileHandler = () => {
+      setShowProfile(false);
+      sessionStorage.setItem('lastView', 'chat');
+    };
     window.addEventListener('openProfile', openProfileHandler);
     window.addEventListener('closeProfile', closeProfileHandler);
 
@@ -61,11 +95,13 @@ function App() {
   const handleLoginSuccess = (data) => {
     setCurrentUser(data.user)
     setIsAuthenticated(true)
+    sessionStorage.setItem('lastView', 'chat')
   }
 
   const handleSignupSuccess = (data) => {
     setCurrentUser(data.user)
     setIsAuthenticated(true)
+    sessionStorage.setItem('lastView', 'chat')
   }
 
   const handleLogout = () => {
@@ -74,20 +110,24 @@ function App() {
     delete axios.defaults.headers.common['Authorization']
     setCurrentUser(null)
     setIsAuthenticated(false)
+    sessionStorage.setItem('lastView', 'home')
   }
 
   const switchToSignup = () => {
     setShowLogin(false)
     setShowHome(false)
+    sessionStorage.setItem('lastView', 'signup')
   }
 
   const switchToLogin = () => {
     setShowLogin(true)
     setShowHome(false)
+    sessionStorage.setItem('lastView', 'login')
   }
 
   const goHome = () => {
     setShowHome(true)
+    sessionStorage.setItem('lastView', 'home')
   }
 
   if (isLoading) {
@@ -136,11 +176,13 @@ function App() {
             <Login 
               onLoginSuccess={handleLoginSuccess} 
               onSwitchToSignup={switchToSignup}
+              onGoHome={goHome}
             />
           ) : (
             <Signup 
               onSignupSuccess={handleSignupSuccess} 
               onSwitchToLogin={switchToLogin}
+              onGoHome={goHome}
             />
           )
         )

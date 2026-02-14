@@ -16,6 +16,7 @@
   border-radius: 0 !important;
   box-shadow: none !important;
   padding: 0.5rem 0 !important;
+  position: relative; /* anchor for top-left Home button */
 }
 .auth-container.signup {
   /* Create Account container height */
@@ -24,6 +25,32 @@
 .auth-container.signin {
   /* Sign-in container height (user requested 15vh) */
   min-height: 15vh !important;
+}
+
+/* Home button inside auth views (top-left) */
+.auth-container.signup .go-home-btn,
+.auth-container.signin .go-home-btn {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 60;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  color: var(--color-slate-900);
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(var(--color-teal-300-rgb),0.06);
+}
+@media (max-width: 640px) {
+  .auth-container.signup .go-home-btn,
+  .auth-container.signin .go-home-btn {
+    top: 10px;
+    left: 8px;
+    padding: 6px 8px;
+    font-size: 0.9rem;
+  }
 }
 
 
@@ -488,6 +515,17 @@
 .step-actions .btn { min-width: 88px; padding: 0.45rem 0.8rem; font-size: 0.95rem; }
 .step-actions .btn-outline { background: transparent; border: 1px solid var(--color-border); color: var(--color-slate-900); }
 
+/* Keep action buttons full-width on very small screens, but
+   prevent global `.btn { flex: 1 }` rules from forcing the
+   signup 'Next' button to expand on tablets/desktop. */
+@media (min-width: 480px) {
+  .auth-container.signup .step-actions .btn {
+    flex: 0 0 auto;     /* do not grow */
+    width: auto;        /* fit content */
+    margin-left: auto;  /* align to right side of the action area */
+  }
+}
+
 @media (max-width: 640px) {
   .signup-stepper { gap:8px; }
   .signup-stepper .step { font-size:0.8rem; padding:6px 8px; }
@@ -629,7 +667,6 @@
 }
 
 .auth-button {
-  width:50%;
   padding: 0.875rem;
   font-size: 0.95rem;
   font-weight: 700;

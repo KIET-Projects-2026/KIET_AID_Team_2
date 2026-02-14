@@ -6,7 +6,7 @@ import './Auth.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-const Login = ({ onLoginSuccess, onSwitchToSignup }) => {
+const Login = ({ onLoginSuccess, onSwitchToSignup, onGoHome }) => {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,6 +53,7 @@ const Login = ({ onLoginSuccess, onSwitchToSignup }) => {
 
   return (
     <div className={`auth-container signin ${isAnimating ? 'active' : ''}`}>
+      <button type="button" className="go-home-btn" onClick={onGoHome} aria-label="Go home">Home</button>
       <div className="auth-card">
         <div className="auth-hero">
           <div className="hero-icon">🩺</div>
