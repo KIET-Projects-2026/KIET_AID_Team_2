@@ -1,6 +1,6 @@
 /* Modern Chatbot Layout & Responsive Design */
 :root {
-  --site-max-width: 1100px; /* main site content width */
+  --site-max-width: 1200px; /* main site content width — aligned with .main-layout */
   --auth-max-width: 560px;  /* auth card width (signup/signin) */
 }
 

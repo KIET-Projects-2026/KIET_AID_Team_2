@@ -2,7 +2,8 @@
 
 /* BASE STYLES - Mobile First (320px+) */
 .home-container {
-  min-height: 100vh;
+  /* reduced as requested */
+  min-height: 15vh !important;
   display: flex;
   flex-direction: column;
   background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(249,250,251,1));
@@ -10,7 +11,8 @@
 }
 
 .home-hero {
-  padding: 3rem 1rem;
+  /* reduced vertical padding for a more compact hero */
+  padding: 1.25rem 1rem;
   background: #14b8a6;
   border-bottom: none;
   margin: -1rem -1rem 0 -1rem;
@@ -18,7 +20,8 @@
 }
 
 .hero-inner {
-  max-width: var(--site-max-width);
+  /* narrower hero content for improved focus */
+  max-width: 760px;
   margin: 0 auto;
   text-align: center;
   padding: 0 1rem;
@@ -26,7 +29,7 @@
 
 .home-title {
   font-size: 2.5rem;
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.5rem 0; /* reduced bottom spacing */
   line-height: 1.2;
   font-weight: 700;
   color: #fff;
@@ -34,7 +37,7 @@
 
 .lead {
   color: #e0f2f1;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem; /* tighter spacing under subtitle */
   font-size: 1.1rem;
   line-height: 1.5;
 }
@@ -42,9 +45,9 @@
 .hero-actions {
   display: flex;
   flex-direction: row;
-  gap: 1rem;
+  gap: 0.75rem; /* slightly reduced gap between action buttons */
   justify-content: center;
-  margin-top: 2rem;
+  margin-top: 1rem; /* bring actions closer to subtitle */
 }
 
 .btn.primary {
@@ -111,10 +114,10 @@
 .home-main {
   max-width: var(--site-max-width);
   margin: 2rem auto 0;
-  padding: 0 0 5rem;
+  padding: 0 0 3rem; /* slightly smaller bottom spacing */
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.75rem; /* tightened carousel/card gap */
   width: 100%;
 }
 
@@ -140,7 +143,7 @@
 
 .home-slide {
   flex: 0 0 100%;
-  padding: 0 0 1.5rem;
+  padding: 0 0 0.75rem; /* reduce vertical padding between slides */
 }
 
 .home-slide .card {
@@ -151,7 +154,7 @@
   display: flex;
   justify-content: center;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin-top: 0.5rem; /* bring dots closer to carousel */
 }
 
 .home-slider-dot {
@@ -213,7 +216,7 @@
 /* Small devices (480px and up) */
 @media (min-width: 480px) {
   .home-hero {
-    padding: 2.5rem 1.5rem;
+    padding: 1.25rem 1rem; /* compact on small screens */
   }
 
   .hero-inner h1 {
@@ -222,7 +225,7 @@
 
   .hero-actions {
     flex-direction: row;
-    gap: 1rem;
+    gap: 0.75rem;
   }
 
   .btn {
@@ -241,7 +244,7 @@
   }
 
   .home-hero {
-    padding: 3rem 2rem;
+    padding: 1.5rem 1.25rem; /* reduced at tablet size */
     margin: -1.5rem -1.5rem 0 -1.5rem;
   }
 
@@ -255,7 +258,7 @@
 
   .lead {
     font-size: 1rem;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1rem;
   }
 
   .home-main {
@@ -282,7 +285,7 @@
   }
 
   .home-hero {
-    padding: 4rem 2rem;
+    padding: 2rem 1.5rem; /* compact but proportionally larger at desktop */
   }
 
   .hero-inner h1 {
@@ -311,7 +314,7 @@
 /* Extra large devices (900px and up) */
 @media (min-width: 900px) {
   .home-hero {
-    padding: 4rem 3rem;
+    padding: 2.5rem 2rem;
   }
 
   .hero-inner h1 {
@@ -331,7 +334,7 @@
 /* Ultra-wide screens (1024px and up) */
 @media (min-width: 1024px) {
   .home-hero {
-    padding: 5rem 3rem;
+    padding: 3rem 2.5rem;
   }
 
   .hero-inner h1 {
@@ -347,7 +350,7 @@
 /* Extra ultra-wide (1280px and up) */
 @media (min-width: 1280px) {
   .home-hero {
-    padding: 5rem 4rem;
+    padding: 3rem 3rem;
   }
 
   .home-main {

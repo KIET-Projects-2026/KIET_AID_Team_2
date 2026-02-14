@@ -37,7 +37,7 @@ const Home = ({ onSwitchToLogin, onSwitchToSignup }) => {
       content: (
         <section className="contact card">
           <h2>Contact Us</h2>
-          <p>If you have feedback, bugs, or collaboration requests, email us at <a href="mailto:hello@healthcare.example">hello@healthcare.example</a> or use the support link in the footer.</p>
+          <p>If you have feedback, bugs, or collaboration requests, email us at <a href="mailto:aravindswamymajjuri143@gmail.com">Team 4</a></p>
         </section>
       )
     }
