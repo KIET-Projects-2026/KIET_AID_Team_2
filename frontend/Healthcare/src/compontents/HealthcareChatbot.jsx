@@ -1595,7 +1595,7 @@ Powered by: Healthcare AI Chatbot v2.0
   // ========== RENDER ==========
   return (
     <>
-      <div className="chatbot-container">
+      <div className={`chatbot-container ${voiceAssistantActive ? 'va-open' : ''}`}>
       {/* Fixed left-edge hamburger for quickly opening/closing the chat history */}
       {/* <button
         className={`global-toggle ${sidebarOpen ? 'open' : ''}`}

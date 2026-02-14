@@ -104,53 +104,52 @@
   overflow-x: hidden;
 }
 
-/* Avatar Section - Compact */
+/* Avatar Section - Compact (reduced for edit-mode no-scroll) */
 .profile-avatar-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px 16px;
+  padding: 8px 10px;            /* reduced padding */
   background: linear-gradient(135deg, var(--profile-primary) 0%, #0d9488 100%);
-  border-radius: var(--profile-radius);
-  margin-bottom: 12px;
+  border-radius: 12px;         /* slightly smaller radius */
+  margin-bottom: 8px;          /* reduced gap */
   box-shadow: var(--profile-shadow);
   position: relative;
   z-index: 1000 !important;
+  gap: 6px;                    /* consistent vertical spacing */
 }
 
 .profile-avatar {
   position: relative;
-  width: 60px;
-  height: 60px;
+  width: 48px;                 /* smaller avatar */
+  height: 48px;
   border-radius: 50%;
   background: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  margin-bottom: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+  margin-bottom: 6px;
 }
 
 .avatar-initials {
-  font-size: 1.5rem;
+  font-size: 1.125rem;         /* slightly smaller text */
   font-weight: 700;
   color: var(--profile-primary);
 }
 
-.avatar-status {
-  display: none;
-}
+.avatar-status { display: none; }
 
 .profile-name {
-  margin: 0 0 4px;
-  font-size: 1.1rem;
+  margin: 0 0 2px;
+  font-size: 1rem;             /* reduced size */
   font-weight: 600;
   color: white;
 }
 
 .profile-email {
-  margin: 0 0 10px;
-  font-size: 0.8rem;
+  margin: 0 0 6px;
+  font-size: 0.72rem;          /* reduced size */
   color: rgba(255, 255, 255, 0.85);
 }
 
@@ -158,12 +157,12 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-radius: var(--profile-radius-sm);
+  padding: 6px 10px;           /* tighter button */
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
   color: white;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
   transition: var(--profile-transition);
@@ -175,28 +174,38 @@
   border-color: white;
 }
 
-/* Profile Cards Container - Compact */
+/* Profile Cards Container - larger cards */
 .profile-cards-container {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 16px; /* slightly bigger gap for visual separation */
   position: relative;
   z-index: 1000 !important;
   padding-bottom: 12px;
+  /* ensure cards have a comfortable minimum height and can stretch */
+  grid-auto-rows: minmax(220px, auto);
+  align-items: stretch;
 }
 
-/* Make the last card (Medical Information) span full width */
+/* Make the last card (Medical Information) span full width and be taller */
 .profile-card-modern:last-child {
   grid-column: 1 / -1;
+  /* reduced to remove excess empty space while keeping enough room */
+  min-height: 240px; /* previously 340px */
 }
 
-/* Modern Profile Card */
+/* Modern Profile Card — larger and stretchable */
 .profile-card-modern {
   background: var(--profile-card-bg);
   border-radius: var(--profile-radius);
   box-shadow: var(--profile-shadow);
   overflow: hidden;
   transition: var(--profile-transition);
+  display: flex;
+  flex-direction: column;
+  min-height: 240px; /* increased default card height */
+  height: 100%;
+  min-width: 0;
 }
 
 .profile-card-modern:hover {
@@ -219,13 +228,16 @@
 
 .card-header h4 {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 1rem; /* increased for readability */
   font-weight: 600;
   color: var(--profile-text-primary);
 }
 
 .card-content {
-  padding: 14px;
+  padding: 20px;    /* more breathing room inside each container */
+  flex: 1 1 auto;   /* allow internal content to grow */
+  min-height: 0;    /* prevent overflow of parent grid/flex */
+  overflow: auto;   /* internal scrolling if content is long */
 }
 
 /* Info Grid */
@@ -246,7 +258,7 @@
 }
 
 .info-label {
-  font-size: 0.7rem;
+  font-size: 0.85rem; /* larger label */
   font-weight: 600;
   color: var(--profile-text-secondary);
   text-transform: uppercase;
@@ -254,9 +266,9 @@
 }
 
 .info-value {
-  font-size: 0.85rem;
+  font-size: 1rem; /* increased value text */
   color: var(--profile-text-primary);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .info-value.medical {
@@ -266,7 +278,7 @@
   padding: 6px 10px;
   border-radius: 6px;
   display: inline-block;
-  font-size: 0.8rem;
+  font-size: 0.95rem; /* slightly larger for emphasis */
 }
 
 /* Edit Form */
@@ -335,6 +347,22 @@
   cursor: pointer;
   transition: var(--profile-transition);
   border: none;
+}
+
+/* Avatar-level edit actions (shown when editing) */
+.avatar-edit-actions {
+  display: none; /* shown on larger screens when in edit mode */
+  gap: 10px;
+  margin-top: 8px;
+}
+.avatar-edit-actions .avatar-save { background: var(--profile-primary); color: #fff; padding: 8px 12px; border-radius: 8px; }
+.avatar-edit-actions .avatar-cancel { background: transparent; border: 1px solid var(--profile-border); padding: 8px 12px; border-radius: 8px; color:white; }
+
+/* Hide the lower action bar on larger screens (we show avatar-level actions there)
+   but keep it for mobile where there's less horizontal space */
+@media (min-width: 640px) {
+  .profile-actions { display: none; }
+  .avatar-edit-actions { display: inline-flex; }
 }
 
 .btn-save {

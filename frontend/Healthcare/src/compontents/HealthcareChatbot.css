@@ -794,7 +794,7 @@ body {
 }
 
 /* Header intro */
-.chatbot-header { animation: headerIntro var(--duration-normal) var(--ease-soft) both; }
+.chatbot-header { animation: headerIntro var(--duration-normal) var(--ease-soft) both; position: relative; z-index: 11000; }
 @keyframes headerIntro {
   0% { opacity: 0; transform: translateY(-8px); }
   100% { opacity: 1; transform: translateY(0); }
@@ -857,6 +857,7 @@ body {
 .profile-menu-wrapper {
   position: relative;
   display: inline-block;
+  overflow: visible; /* allow the absolute dropdown to escape parent if needed */
 }
 .profile-menu {
   position: absolute;
@@ -872,7 +873,7 @@ body {
   transform: translateY(-6px);
   pointer-events: none;
   transition: opacity 160ms var(--ease-standard), transform 160ms var(--ease-standard);
-  z-index: 2000;
+  z-index: 10100; /* raised so dropdown sits above chat messages */
 }
 .profile-menu.open { opacity: 1; transform: translateY(0); pointer-events: auto; }
 .profile-menu__item {
@@ -2431,12 +2432,15 @@ body {
 .voice-assistant-overlay {
   position: fixed;
   inset: 0;
-  z-index: 10000;
+  z-index: 12000; /* ensure overlay sits above header */
   display: flex;
   align-items: flex-end;
   justify-content: center;
   animation: vaOverlayIn 0.3s ease both;
 }
+
+/* hide header when voice assistant is open */
+.chatbot-container.va-open .chatbot-header { visibility: hidden; pointer-events: none; }
 
 @keyframes vaOverlayIn {
   from { opacity: 0; }

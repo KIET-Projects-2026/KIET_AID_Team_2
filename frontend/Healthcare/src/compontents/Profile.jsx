@@ -23,6 +23,9 @@ const Profile = ({ onLogout }) => {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
+  // track whether any changes were made compared to the loaded user
+  const isDirty = JSON.stringify(editData || {}) !== JSON.stringify(user || {});
+
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
@@ -180,6 +183,15 @@ const Profile = ({ onLogout }) => {
             <button onClick={handleEdit} className="btn-edit-profile">
               <span>✏️</span> Edit Profile
             </button>
+          )}
+
+          {editMode && (
+            <div className="avatar-edit-actions">
+              <button className="btn-save avatar-save" onClick={handleSave} disabled={!isDirty || saving}>
+                {saving ? (<><span className="btn-spinner" /> Saving...</>) : (<>✓ Save</>)}
+              </button>
+              <button className="btn-cancel avatar-cancel" onClick={handleCancel} disabled={saving}>✕ Cancel</button>
+            </div>
           )}
         </div>
 
